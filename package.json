@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+        "postinstall": "npm rebuild lightningcss",
     "create-admin": "ts-node scripts/createAdmin.ts",
     "lint": "next lint"
   },
