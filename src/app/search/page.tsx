@@ -1,4 +1,3 @@
-// app/search/page.tsx - FIXED SUBCATEGORY ISSUE
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -17,6 +16,7 @@ import {
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
 import { useWishlist } from '../contexts/WishlistContext'
 import { getCategoryConfig, getAllCategories, getSubcategories } from '@/lib/categories'
+import { useCart } from '../contexts/CartContext'
 
 type Product = {
   _id: string
@@ -116,8 +116,50 @@ const generatePopularFilters = (category: string, subcategory: string) => {
         { label: '1TB Storage', field: 'storage', value: '1TB', count: 1890 }
       )
     }
-  } else if (category === 'Clothing') {
-    // NO BRAND FILTERS FOR CLOTHING - only clothing specific filters
+  // Update the Clothing section in generatePopularFilters function - FIXED VERSION
+} else if (category === 'Clothing') {
+  // NO BRAND FILTERS FOR CLOTHING - only clothing specific filters
+  if (subcategory === 'Men') {
+    popularFilters.push(
+      { label: 'Men T-Shirts', field: 'Men-clothingType', value: 'T-Shirt', count: 2456 }, // Fixed: use 'Men-clothingType'
+      { label: 'Men Shirts', field: 'Men-clothingType', value: 'Shirt', count: 1890 }, // Fixed: use 'Men-clothingType'
+      { label: 'Men Jeans', field: 'Men-clothingType', value: 'Jeans', count: 1678 }, // Fixed: use 'Men-clothingType'
+      { label: 'Men Size M', field: 'Men-size', value: 'M', count: 3123 }, // Fixed: use 'Men-size'
+      { label: 'Men Size L', field: 'Men-size', value: 'L', count: 2789 }, // Fixed: use 'Men-size'
+      { label: 'Cotton Material', field: 'material', value: 'Cotton', count: 4521 },
+      { label: 'Black Color', field: 'color', value: 'Black', count: 3890 }
+    )
+  } else if (subcategory === 'Women') {
+    popularFilters.push(
+      { label: 'Women Dresses', field: 'Women-clothingType', value: 'Dress', count: 3456 }, // Fixed: use 'Women-clothingType'
+      { label: 'Women Blouses', field: 'Women-clothingType', value: 'Blouse', count: 2345 }, // Fixed: use 'Women-clothingType'
+      { label: 'Women Skirts', field: 'Women-clothingType', value: 'Skirt', count: 1890 }, // Fixed: use 'Women-clothingType'
+      { label: 'Women Size M', field: 'Women-size', value: 'M', count: 2987 }, // Fixed: use 'Women-size'
+      { label: 'Women Size L', field: 'Women-size', value: 'L', count: 2456 }, // Fixed: use 'Women-size'
+      { label: 'Silk Material', field: 'material', value: 'Silk', count: 1678 },
+      { label: 'Red Color', field: 'color', value: 'Red', count: 2123 }
+    )
+  } else if (subcategory === 'Kids') {
+    popularFilters.push(
+      { label: 'Kids T-Shirts', field: 'Kids-clothingType', value: 'T-Shirt', count: 1890 }, // Fixed: use 'Kids-clothingType'
+      { label: 'Kids Dresses', field: 'Kids-clothingType', value: 'Dress', count: 1567 }, // Fixed: use 'Kids-clothingType'
+      { label: 'Kids Size 3-4Y', field: 'Kids-size', value: '3-4Y', count: 2345 }, // Fixed: use 'Kids-size'
+      { label: 'Kids Size 5-6Y', field: 'Kids-size', value: '5-6Y', count: 1987 }, // Fixed: use 'Kids-size'
+      { label: 'Cotton Material', field: 'material', value: 'Cotton', count: 3123 },
+      { label: 'Blue Color', field: 'color', value: 'Blue', count: 1789 }
+    )
+  } else if (subcategory === 'Shoes') {
+    popularFilters.push(
+      { label: 'Sneakers', field: 'Shoes-type', value: 'Sneakers', count: 3456 }, // Fixed: use 'Shoes-type'
+      { label: 'Sports Shoes', field: 'Shoes-type', value: 'Sports', count: 2789 }, // Fixed: use 'Shoes-type'
+      { label: 'Formal Shoes', field: 'Shoes-type', value: 'Formal', count: 1890 }, // Fixed: use 'Shoes-type'
+      { label: 'Size 40', field: 'Shoes-size', value: '40', count: 2345 }, // Fixed: use 'Shoes-size'
+      { label: 'Size 42', field: 'Shoes-size', value: '42', count: 1987 }, // Fixed: use 'Shoes-size'
+      { label: 'Leather Material', field: 'material', value: 'Leather', count: 2678 },
+      { label: 'Black Color', field: 'color', value: 'Black', count: 3123 }
+    )
+  } else {
+    // Generic clothing filters when no specific subcategory is selected
     popularFilters.push(
       { label: 'Cotton Material', field: 'material', value: 'Cotton', count: 4521 },
       { label: 'Size M', field: 'size', value: 'M', count: 3890 },
@@ -126,6 +168,8 @@ const generatePopularFilters = (category: string, subcategory: string) => {
       { label: 'T-Shirt', field: 'clothingType', value: 'T-Shirt', count: 4231 },
       { label: 'Jeans', field: 'clothingType', value: 'Jeans', count: 3890 }
     )
+  }
+
   } else if (category === 'Beauty & Health') {
     if (subcategory === 'Skincare') {
       popularFilters.push(
@@ -222,6 +266,7 @@ export default function SearchPage() {
   const searchParams = useSearchParams()
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const { addToCart, cartItems, cartCount } = useCart() // Add this line
 
   // State for search and filters
   const [products, setProducts] = useState<Product[]>([])
@@ -246,6 +291,11 @@ export default function SearchPage() {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestionLoading, setSuggestionLoading] = useState(false)
+  
+  // Recommendation states
+  const [recommendations, setRecommendations] = useState<Product[]>([])
+  const [showRecommendations, setShowRecommendations] = useState(false)
+  const [userId, setUserId] = useState<string>('')
   
   const [categorySpecifications, setCategorySpecifications] = useState<any>(null)
   const [openFilterSections, setOpenFilterSections] = useState<{[key: string]: boolean}>({
@@ -274,11 +324,23 @@ export default function SearchPage() {
     ? getSubcategories(selectedCategory)
     : []
 
+  // Generate or get user ID for tracking
+  useEffect(() => {
+    const storedUserId = localStorage.getItem('recommendationUserId')
+    if (storedUserId) {
+      setUserId(storedUserId)
+    } else {
+      const newUserId = 'user_' + Math.random().toString(36).substr(2, 9)
+      localStorage.setItem('recommendationUserId', newUserId)
+      setUserId(newUserId)
+    }
+  }, [])
+
   // Get initial search parameters from URL - FIXED: No reload on typing
   useEffect(() => {
-    const query = searchParams.get('q') || ''
-    const category = searchParams.get('category') || 'All Categories'
-    const subcategory = searchParams.get('subcategory') || ''
+    const query = searchParams?.get('q') || ''
+    const category = searchParams?.get('category') || 'All Categories'
+    const subcategory = searchParams?.get('subcategory') || ''
     
     setSearchQuery(query)
     setSelectedCategory(category)
@@ -434,6 +496,122 @@ export default function SearchPage() {
     toggleFilter(filter.field, filter.value)
   }
 
+ // In your search page component - update the trackUserBehavior function
+// In your search page - update the trackUserBehavior function
+const trackUserBehavior = async (data: {
+  searchQuery?: string
+  category?: string
+  subcategory?: string
+  productId?: string
+  action: 'search' | 'view'
+}) => {
+  try {
+    const response = await fetch('/api/recommendations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': userId,
+      },
+      body: JSON.stringify(data),
+    })
+    
+    // Handle both success and error responses gracefully
+    if (!response.ok) {
+      console.log('Tracking request failed, but continuing...')
+      return
+    }
+    
+    const result = await response.json()
+    if (result.success) {
+      console.log('✅ User behavior tracked')
+    }
+  } catch (error) {
+    // Don't break the app if tracking fails
+    console.log('Tracking failed, but continuing:', error)
+  }
+}
+
+// Update the fetchRecommendations function
+const fetchRecommendations = async () => {
+  try {
+    const params = new URLSearchParams()
+    if (searchQuery) params.set('q', searchQuery)
+    if (selectedCategory !== 'All Categories') params.set('category', selectedCategory)
+    
+    const res = await fetch(`/api/recommendations?${params.toString()}`, {
+      headers: {
+        'x-user-id': userId,
+      },
+    })
+    
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success && data.recommendations && data.recommendations.length > 0) {
+        setRecommendations(data.recommendations)
+        setShowRecommendations(true)
+        console.log(`✅ Loaded ${data.recommendations.length} recommendations`)
+      } else {
+        console.log('No recommendations available')
+        setShowRecommendations(false)
+      }
+    }
+  } catch (error) {
+    console.log('Error fetching recommendations, hiding section:', error)
+    setShowRecommendations(false)
+  }
+}
+  // // Add this function to get recommendations
+  // const fetchRecommendations = async () => {
+  //   try {
+  //     const params = new URLSearchParams()
+  //     if (searchQuery) params.set('q', searchQuery)
+  //     if (selectedCategory !== 'All Categories') params.set('category', selectedCategory)
+      
+  //     const res = await fetch(`/api/recommendations?${params.toString()}`, {
+  //       headers: {
+  //         'x-user-id': userId,
+  //       },
+  //     })
+      
+  //     if (res.ok) {
+  //       const data = await res.json()
+  //       if (data.success && data.recommendations && data.recommendations.length > 0) {
+  //         setRecommendations(data.recommendations)
+  //         setShowRecommendations(true)
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.log('Error fetching recommendations:', error)
+  //   }
+  // }
+
+  // Update product view tracking
+  const handleProductView = (product: Product) => {
+    trackUserBehavior({
+      productId: product._id,
+      action: 'view'
+    })
+    
+    // Also track product view count
+    fetch('/api/products/track', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        productSlug: product.slug,
+        action: 'view'
+      }),
+    }).catch(console.error)
+  }
+
+  // Update your product click handler
+  const handleProductClick = (product: Product) => {
+    handleProductView(product)
+    const productSlug = product.slug || product._id
+    router.push(`/products/${productSlug}`)
+  }
+
   // Debounced search function - FIXED: No reload on typing
   const debouncedSearch = useCallback(
     debounce(async (searchParams: {
@@ -540,6 +718,21 @@ export default function SearchPage() {
     debouncedSearch
   ])
 
+  // Update your search effect to track searches
+  useEffect(() => {
+    if (searchQuery && userId) {
+      trackUserBehavior({
+        searchQuery,
+        category: selectedCategory !== 'All Categories' ? selectedCategory : undefined,
+        subcategory: selectedSubcategory || undefined,
+        action: 'search'
+      })
+      
+      // Fetch recommendations after search
+      setTimeout(fetchRecommendations, 1000)
+    }
+  }, [searchQuery, selectedCategory, selectedSubcategory, userId])
+
   // Helper functions for sorting
   const getSortField = (sort: string) => {
     switch (sort) {
@@ -577,6 +770,7 @@ export default function SearchPage() {
     resetAllFilters()
     setSortBy('relevance')
     setShowSuggestions(false)
+    setShowRecommendations(false)
     if (searchInputRef.current) {
       searchInputRef.current.value = ''
     }
@@ -592,8 +786,7 @@ export default function SearchPage() {
 
   const handleProductAction = (product: Product, action: 'view' | 'cart') => {
     if (action === 'view') {
-      const productSlug = product.slug || product._id
-      router.push(`/products/${productSlug}`)
+      handleProductClick(product)
     } else if (action === 'cart') {
       alert(`Added ${product.name} to cart!`)
     }
@@ -741,38 +934,54 @@ export default function SearchPage() {
     )
   }
 
-  // Render dynamic filters based on category - FIXED: Brand only shows in Electronics
-  const renderDynamicFilters = () => {
-    if (!categorySpecifications?.filters) return null
+ // Render dynamic filters based on category - FIXED: Brand only shows in Electronics and unique keys
+const renderDynamicFilters = () => {
+  if (!categorySpecifications?.filters) return null
 
-    return categorySpecifications.filters.map((filter: any) => {
-      // Hide brand filter for non-electronics categories
-      if (filter.fieldName === 'brand' && selectedCategory !== 'Electronics') {
-        return null
-      }
+  // Create a Set to track unique field names
+  const seenFieldNames = new Set()
+  const uniqueFilters = []
 
-      const availableItems = availableFilters[filter.fieldName] || getFilterOptions(filter.fieldName, selectedCategory, selectedSubcategory)
-      const selectedItems = selectedFilters[filter.fieldName] || []
+  for (const filter of categorySpecifications.filters) {
+    // Skip if we've already seen this field name
+    if (seenFieldNames.has(filter.fieldName)) {
+      continue
+    }
+    
+    // Hide brand filter for non-electronics categories
+    if (filter.fieldName === 'brand' && selectedCategory !== 'Electronics') {
+      continue
+    }
 
-      if (availableItems.length === 0) return null
+    const availableItems = availableFilters[filter.fieldName] || getFilterOptions(filter.fieldName, selectedCategory, selectedSubcategory)
+    
+    if (availableItems.length === 0) continue
 
-      return (
-        <FilterSection 
-          key={filter.fieldName} 
-          title={filter.label} 
-          sectionKey={filter.fieldName}
-          defaultOpen={false}
-        >
-          <CheckboxFilter
-            items={availableItems}
-            selectedItems={selectedItems}
-            onToggle={(value) => toggleFilter(filter.fieldName, value)}
-            showCounts={true}
-          />
-        </FilterSection>
-      )
-    })
+    seenFieldNames.add(filter.fieldName)
+    uniqueFilters.push(filter)
   }
+
+  return uniqueFilters.map((filter: any) => {
+    const availableItems = availableFilters[filter.fieldName] || getFilterOptions(filter.fieldName, selectedCategory, selectedSubcategory)
+    const selectedItems = selectedFilters[filter.fieldName] || []
+
+    return (
+      <FilterSection 
+        key={`${filter.fieldName}-${filter.label}`} // More unique key
+        title={filter.label} 
+        sectionKey={filter.fieldName}
+        defaultOpen={false}
+      >
+        <CheckboxFilter
+          items={availableItems}
+          selectedItems={selectedItems}
+          onToggle={(value) => toggleFilter(filter.fieldName, value)}
+          showCounts={true}
+        />
+      </FilterSection>
+    )
+  })
+}
 
   // Get filter options for specific fields - COMPLETE: All categories
   const getFilterOptions = (fieldName: string, category: string, subcategory: string): string[] => {
@@ -795,12 +1004,23 @@ export default function SearchPage() {
       'condition': ['Brand New', 'Refurbished', 'Used', 'New', 'Used - Like New', 'Used - Good', 'Used - Fair'],
       'color': ['Black', 'White', 'Blue', 'Red', 'Green', 'Silver', 'Gold', 'Gray'],
       
-      // Clothing
-      'size': ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
-      'material': ['Cotton', 'Polyester', 'Silk', 'Wool', 'Denim', 'Linen', 'Leather'],
-      'gender': ['Men', 'Women', 'Unisex', 'Kids'],
-      'clothingType': ['T-Shirt', 'Shirt', 'Pants', 'Jeans', 'Dress', 'Skirt', 'Jacket', 'Sweater'],
-      
+      /// Clothing - generic (for when no subcategory is selected)
+    'size': ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
+    'material': ['Cotton', 'Polyester', 'Silk', 'Wool', 'Denim', 'Linen', 'Leather'],
+    'gender': ['Men', 'Women', 'Unisex', 'Kids'],
+    'clothingType': ['T-Shirt', 'Shirt', 'Pants', 'Jeans', 'Dress', 'Skirt', 'Jacket', 'Sweater'],
+    'shoeType': ['Sneakers', 'Boots', 'Sandals', 'Formal', 'Sports', 'Casual'],
+    
+    // Clothing - prefixed versions (for subcategory-specific filtering)
+    'Men-size': ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
+    'Women-size': ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
+    'Kids-size': ['Newborn', '0-3M', '3-6M', '6-12M', '1-2Y', '3-4Y', '5-6Y', '7-8Y', '9-10Y'],
+    'Shoes-size': ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'],
+    
+    'Men-clothingType': ['T-Shirt', 'Shirt', 'Pants', 'Jeans', 'Jacket', 'Sweater', 'Underwear', 'Suit', 'Shorts'],
+    'Women-clothingType': ['Dress', 'Skirt', 'Blouse', 'T-Shirt', 'Pants', 'Jeans', 'Jacket', 'Sweater'],
+    'Kids-clothingType': ['T-Shirt', 'Dress', 'Pants', 'Shorts', 'Jacket', 'Sweater'],
+    'Shoes-type': ['Sneakers', 'Boots', 'Sandals', 'Formal', 'Sports', 'Casual'],
       // Beauty & Health
       'skinType': ['All Skin Types', 'Dry', 'Oily', 'Combination', 'Sensitive'],
       'productType': ['Skincare', 'Makeup', 'Hair Care', 'Fragrance', 'Wellness', 'Personal Care'],
@@ -1376,159 +1596,371 @@ export default function SearchPage() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map((product) => {
-                  const isInWishlistState = isInWishlist(product._id)
-                  const isOutOfStock = product.stock === 0 || !product.inStock
-                  const displayPrice = product.isOnSale && product.salePrice ? product.salePrice : product.price
-                  const originalPrice = product.isOnSale ? product.price : null
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredProducts.map((product) => {
+                    const isInWishlistState = isInWishlist(product._id)
+                    const isOutOfStock = product.stock === 0 || !product.inStock
+                    const displayPrice = product.isOnSale && product.salePrice ? product.salePrice : product.price
+                    const originalPrice = product.isOnSale ? product.price : null
 
-                  return (
-                    <div
-                      key={product._id}
-                      className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col relative overflow-hidden"
-                    >
-                      {/* Badges */}
-                      <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
-                        {product.isNew && (
-                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                            NEW
-                          </span>
-                        )}
-                        {product.isOnSale && (
-                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                            SALE
-                          </span>
-                        )}
-                        {isOutOfStock && (
-                          <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                            OUT OF STOCK
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Wishlist Button */}
-                      <button
-                        onClick={() => toggleWishlist(product)}
-                        className="absolute top-3 right-3 z-10 p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+                    return (
+                      <div
+                        key={product._id}
+                        className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col relative overflow-hidden"
                       >
-                        {isInWishlistState ? (
-                          <HeartSolidIcon className="w-5 h-5 text-red-500" />
-                        ) : (
-                          <HeartIcon className="w-5 h-5 text-gray-400 hover:text-red-500" />
-                        )}
-                      </button>
-
-                      {/* Product Image */}
-                      <div 
-                        className="w-full h-48 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-900 rounded-t-2xl relative cursor-pointer"
-                        onClick={() => handleProductAction(product, 'view')}
-                      >
-                        <img
-                          src={product.images?.[0] || product.image}
-                          alt={product.name}
-                          className="object-contain h-full w-full transition-transform duration-500 group-hover:scale-110"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500&h=500&fit=crop&auto=format'
-                          }}
-                        />
-                        {isOutOfStock && (
-                          <div className="absolute inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center">
-                            <span className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg font-semibold">
-                              Out of Stock
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Product Info */}
-                      <div className="p-4 flex flex-col justify-between flex-1">
-                        <div className="space-y-2">
-                          {/* Category */}
-                          {product.category && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">
-                              {product.category}
+                        {/* Badges */}
+                        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+                          {product.isNew && (
+                            <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                              NEW
                             </span>
                           )}
+                          {product.isOnSale && (
+                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                              SALE
+                            </span>
+                          )}
+                          {isOutOfStock && (
+                            <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                              OUT OF STOCK
+                            </span>
+                          )}
+                        </div>
 
-                          {/* Product Name */}
-                          <h3 
-                            className="font-semibold text-gray-900 dark:text-white line-clamp-2 text-sm leading-tight group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors cursor-pointer"
-                            onClick={() => handleProductAction(product, 'view')}
-                          >
-                            {product.name}
-                          </h3>
+                        {/* Wishlist Button */}
+                        <button
+                          onClick={() => toggleWishlist(product)}
+                          className="absolute top-3 right-3 z-10 p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+                        >
+                          {isInWishlistState ? (
+                            <HeartSolidIcon className="w-5 h-5 text-red-500" />
+                          ) : (
+                            <HeartIcon className="w-5 h-5 text-gray-400 hover:text-red-500" />
+                          )}
+                        </button>
 
-                          {/* Specifications Preview */}
-                          {product.specifications && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                              {product.specifications.brand && (
-                                <div>Brand: {product.specifications.brand}</div>
-                              )}
-                              {product.specifications.condition && (
-                                <div>Condition: {product.specifications.condition}</div>
-                              )}
-                              {product.specifications.screenSize && (
-                                <div>Screen: {product.specifications.screenSize}</div>
-                              )}
-                              {product.specifications.ram && (
-                                <div>RAM: {product.specifications.ram}</div>
-                              )}
-                              {product.specifications.storage && (
-                                <div>Storage: {product.specifications.storage}</div>
-                              )}
+                        {/* Product Image */}
+                        <div 
+                          className="w-full h-48 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-900 rounded-t-2xl relative cursor-pointer"
+                          onClick={() => handleProductAction(product, 'view')}
+                        >
+                          <img
+                            src={product.images?.[0] || product.image}
+                            alt={product.name}
+                            className="object-contain h-full w-full transition-transform duration-500 group-hover:scale-110"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500&h=500&fit=crop&auto=format'
+                            }}
+                          />
+                          {isOutOfStock && (
+                            <div className="absolute inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center">
+                              <span className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg font-semibold">
+                                Out of Stock
+                              </span>
                             </div>
                           )}
+                        </div>
 
-                          {/* Price */}
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
-                              {displayPrice.toFixed(2)} Br
-                            </span>
-                            {originalPrice && (
-                              <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                                {originalPrice.toFixed(2)} Br
+                        {/* Product Info */}
+                        <div className="p-4 flex flex-col justify-between flex-1">
+                          <div className="space-y-2">
+                            {/* Category */}
+                            {product.category && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">
+                                {product.category}
                               </span>
+                            )}
+
+                            {/* Product Name */}
+                            <h3 
+                              className="font-semibold text-gray-900 dark:text-white line-clamp-2 text-sm leading-tight group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors cursor-pointer"
+                              onClick={() => handleProductAction(product, 'view')}
+                            >
+                              {product.name}
+                            </h3>
+
+                            {/* Specifications Preview */}
+                            {product.specifications && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                {product.specifications.brand && (
+                                  <div>Brand: {product.specifications.brand}</div>
+                                )}
+                                {product.specifications.condition && (
+                                  <div>Condition: {product.specifications.condition}</div>
+                                )}
+                                {product.specifications.screenSize && (
+                                  <div>Screen: {product.specifications.screenSize}</div>
+                                )}
+                                {product.specifications.ram && (
+                                  <div>RAM: {product.specifications.ram}</div>
+                                )}
+                                {product.specifications.storage && (
+                                  <div>Storage: {product.specifications.storage}</div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Price */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+                                {displayPrice.toFixed(2)} Br
+                              </span>
+                              {originalPrice && (
+                                <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                                  {originalPrice.toFixed(2)} Br
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Stock Indicator */}
+                            {product.stock !== undefined && product.stock > 0 && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {product.stock < 10 ? (
+                                  <span className="text-orange-500">Only {product.stock} left</span>
+                                ) : (
+                                  <span className="text-green-500">In Stock</span>
+                                )}
+                              </div>
                             )}
                           </div>
 
-                          {/* Stock Indicator */}
-                          {product.stock !== undefined && product.stock > 0 && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {product.stock < 10 ? (
-                                <span className="text-orange-500">Only {product.stock} left</span>
-                              ) : (
-                                <span className="text-green-500">In Stock</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="mt-4 space-y-2">
-                          <button
-                            onClick={() => handleProductAction(product, 'view')}
-                            className="w-full inline-flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-500 text-gray-900 text-sm px-4 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl font-semibold group/btn"
-                          >
-                            <EyeIcon className="w-4 h-4" />
-                            View Details
-                          </button>
-                          
-                          {!isOutOfStock && (
-                            <button 
-                              className="w-full inline-flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-600 hover:border-yellow-500 dark:hover:border-yellow-400 text-gray-700 dark:text-gray-300 hover:text-yellow-600 dark:hover:text-yellow-400 text-sm px-4 py-2 rounded-xl transition-all duration-200 font-medium group/cart"
-                              onClick={() => handleProductAction(product, 'cart')}
+                          {/* Action Buttons */}
+                          <div className="mt-4 space-y-2">
+                            <button
+                              onClick={() => handleProductAction(product, 'view')}
+                              className="w-full inline-flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-500 text-gray-900 text-sm px-4 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl font-semibold group/btn"
                             >
-                              <ShoppingBagIcon className="w-4 h-4" />
-                              Add to Cart
+                              <EyeIcon className="w-4 h-4" />
+                              View Details
                             </button>
-                          )}
+                            
+                           {!isOutOfStock && (
+  <button 
+    className={`w-full inline-flex items-center justify-center gap-2 border text-sm px-4 py-2 rounded-xl transition-all duration-200 font-medium group/cart ${
+      cartItems.some(item => item.id === product._id)
+        ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+        : 'border-gray-300 dark:border-gray-600 hover:border-yellow-500 dark:hover:border-yellow-400 text-gray-700 dark:text-gray-300 hover:text-yellow-600 dark:hover:text-yellow-400'
+    }`}
+    onClick={() => addToCart(product)}
+  >
+    <ShoppingBagIcon className="w-4 h-4" />
+    {cartItems.some(item => item.id === product._id) ? 'Added to Cart' : 'Add to Cart'}
+  </button>
+)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
+
+      {/* Recommendations Section - UPDATED TO MATCH PRODUCT LIST STYLING */}
+{showRecommendations && recommendations.length > 0 && (
+  <div className="mt-12 border-t border-gray-200 dark:border-gray-700 pt-8">
+    <div className="flex items-center justify-between mb-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        Recommended For You
+      </h2>
+      <button
+        onClick={() => setShowRecommendations(false)}
+        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+      >
+        <XMarkIcon className="w-5 h-5" />
+      </button>
+    </div>
+    
+    {/* Updated recommendations grid to match product list styling */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {recommendations.map((product) => {
+        const isInWishlistState = isInWishlist(product._id)
+        const isInCartState = cartItems.some(item => item.id === product._id) // Check if product is in cart
+        const isOutOfStock = product.stock === 0 || !product.inStock
+        const displayPrice = product.isOnSale && product.salePrice ? product.salePrice : product.price
+        const originalPrice = product.isOnSale ? product.price : null
+
+        return (
+          <div
+            key={product._id}
+            className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col relative overflow-hidden"
+          >
+            {/* Badges */}
+            <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+              {product.isNew && (
+                <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                  NEW
+                </span>
+              )}
+              {product.isOnSale && (
+                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                  SALE
+                </span>
+              )}
+              {isOutOfStock && (
+                <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                  OUT OF STOCK
+                </span>
+              )}
+            </div>
+
+            {/* Wishlist Button */}
+            <button
+              onClick={() => toggleWishlist(product)}
+              className="absolute top-3 right-3 z-10 p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+            >
+              {isInWishlistState ? (
+                <HeartSolidIcon className="w-5 h-5 text-red-500" />
+              ) : (
+                <HeartIcon className="w-5 h-5 text-gray-400 hover:text-red-500" />
+              )}
+            </button>
+
+            {/* Product Image */}
+            <div 
+              className="w-full h-48 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-900 rounded-t-2xl relative cursor-pointer"
+              onClick={() => handleProductAction(product, 'view')}
+            >
+              <img
+                src={product.images?.[0] || product.image || '/images/placeholder-product.jpg'}
+                alt={product.name}
+                className="object-contain h-full w-full transition-transform duration-500 group-hover:scale-110"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500&h=500&fit=crop&auto=format'
+                }}
+              />
+              {isOutOfStock && (
+                <div className="absolute inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center">
+                  <span className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg font-semibold">
+                    Out of Stock
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Product Info - Updated to show all details */}
+            <div className="p-4 flex flex-col justify-between flex-1">
+              <div className="space-y-2">
+                {/* Category */}
+                {product.category && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">
+                    {product.category}
+                  </span>
+                )}
+
+                {/* Product Name */}
+                <h3 
+                  className="font-semibold text-gray-900 dark:text-white line-clamp-2 text-sm leading-tight group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors cursor-pointer"
+                  onClick={() => handleProductAction(product, 'view')}
+                >
+                  {product.name}
+                </h3>
+
+                {/* Description Preview */}
+                {product.description && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                    {product.description}
+                  </p>
+                )}
+
+                {/* Specifications Preview */}
+                {product.specifications && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                    {product.specifications.brand && (
+                      <div>Brand: {product.specifications.brand}</div>
+                    )}
+                    {product.specifications.condition && (
+                      <div>Condition: {product.specifications.condition}</div>
+                    )}
+                    {product.specifications.screenSize && (
+                      <div>Screen: {product.specifications.screenSize}</div>
+                    )}
+                    {product.specifications.ram && (
+                      <div>RAM: {product.specifications.ram}</div>
+                    )}
+                    {product.specifications.storage && (
+                      <div>Storage: {product.specifications.storage}</div>
+                    )}
+                    {product.specifications.processor && (
+                      <div>Processor: {product.specifications.processor}</div>
+                    )}
+                    {product.specifications.color && (
+                      <div>Color: {product.specifications.color}</div>
+                    )}
+                    {product.specifications.material && (
+                      <div>Material: {product.specifications.material}</div>
+                    )}
+                    {product.specifications.size && (
+                      <div>Size: {product.specifications.size}</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Seller Info */}
+                {product.seller && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Seller: {product.seller.name}
+                    {product.seller.rating && (
+                      <span className="ml-2">⭐ {product.seller.rating}</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Price */}
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+                    {displayPrice.toFixed(2)} Br
+                  </span>
+                  {originalPrice && (
+                    <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                      {originalPrice.toFixed(2)} Br
+                    </span>
+                  )}
+                </div>
+
+                {/* Stock Indicator */}
+                {product.stock !== undefined && product.stock > 0 && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {product.stock < 10 ? (
+                      <span className="text-orange-500">Only {product.stock} left</span>
+                    ) : (
+                      <span className="text-green-500">In Stock</span>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* Action Buttons */}
+              <div className="mt-4 space-y-2">
+                <button
+                  onClick={() => handleProductAction(product, 'view')}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-500 text-gray-900 text-sm px-4 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl font-semibold group/btn"
+                >
+                  <EyeIcon className="w-4 h-4" />
+                  View Details
+                </button>
+                
+                {!isOutOfStock && (
+                  <button 
+                    className={`w-full inline-flex items-center justify-center gap-2 border text-sm px-4 py-2 rounded-xl transition-all duration-200 font-medium group/cart ${
+                      isInCartState
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-yellow-500 dark:hover:border-yellow-400 text-gray-700 dark:text-gray-300 hover:text-yellow-600 dark:hover:text-yellow-400'
+                    }`}
+                    onClick={() => addToCart(product)}
+                  >
+                    <ShoppingBagIcon className="w-4 h-4" />
+                    {isInCartState ? 'Added to Cart' : 'Add to Cart'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  </div>
+)}
+              </>
             )}
           </div>
         </div>

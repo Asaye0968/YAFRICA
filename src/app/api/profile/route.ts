@@ -1,4 +1,3 @@
-// src/app/api/profile/route.ts
 import { NextResponse } from 'next/server'
 import connectMongo from '@/lib/mongodb'
 import User from '@/models/User'

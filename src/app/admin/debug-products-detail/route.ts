@@ -1,4 +1,3 @@
-// src/app/api/admin/debug-products-detail/route.ts
 import { NextResponse } from 'next/server'
 import connectMongo from '@/lib/mongodb'
 import Product from '@/models/Product'

@@ -1,4 +1,3 @@
-//C:\Users\hp\Desktop\nextjs pro\yafrican\src\app\_category_backup\[category]\[subcategory]\apage.tsx
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 

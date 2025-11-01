@@ -1,4 +1,3 @@
-// src/app/api/products/[id]/route.ts
 import { NextResponse } from 'next/server'
 import connectMongo from '@/lib/mongodb'
 import Product from '@/models/Product'

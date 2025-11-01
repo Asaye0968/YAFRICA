@@ -38,7 +38,7 @@ const sliderImages = [
     title: 'Free Shipping',
     subtitle: 'On Orders Over $50',
     buttonText: 'Learn More',
-    buttonLink: '/shipping'
+    buttonLink: '/search'
   }
 ]
 

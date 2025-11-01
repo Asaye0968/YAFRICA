@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   try {
     await connectMongo()
 
-    const { name, email, password, phone, storeName } = await req.json()
+    const { name, email, password, phone, role, storeName, address, paymentMethod } = await req.json()
     
     if (!name || !email || !password) {
       return NextResponse.json({ 
@@ -27,26 +27,34 @@ export async function POST(req: Request) {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12)
 
-    // Create user (default role is 'seller' for registration)
-    const user = await User.create({
+    // Create user with dynamic role
+    const userData: any = {
       name,
       email: email.toLowerCase(),
       passwordHash,
       phone: phone || '',
-      storeName: storeName || '',
-      role: 'seller', // Default to seller for registration
+      role: role || 'customer', // Use role from request, default to customer
       status: 'active'
-    })
+    }
+
+    // Add seller-specific fields only if role is seller
+    if (role === 'seller') {
+      userData.storeName = storeName || ''
+      userData.address = address || ''
+      userData.paymentMethod = paymentMethod || ''
+    }
+
+    const user = await User.create(userData)
 
     return NextResponse.json({
       success: true,
-      message: 'Seller registered successfully',
+      message: `${role === 'seller' ? 'Seller' : 'User'} registered successfully`,
       user: {
         id: user._id.toString(),
         name: user.name,
         email: user.email,
         role: user.role,
-        storeName: user.storeName
+        ...(role === 'seller' && { storeName: user.storeName })
       }
     }, { status: 201 })
 

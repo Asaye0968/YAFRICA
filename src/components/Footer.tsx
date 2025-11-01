@@ -150,7 +150,7 @@ export default function Footer() {
                 <MapPinIcon className="w-5 h-5 text-yellow-500 mt-1 flex-shrink-0" />
                 <div>
                   <p className="text-gray-300 font-medium">Address</p>
-                  <p className="text-gray-400 text-sm">123 Market Street, City, State 12345</p>
+                  <p className="text-gray-400 text-sm">1000 Addis Ababa,Ethiopia</p>
                 </div>
               </div>
               
@@ -158,7 +158,7 @@ export default function Footer() {
                 <PhoneIcon className="w-5 h-5 text-yellow-500 flex-shrink-0" />
                 <div>
                   <p className="text-gray-300 font-medium">Phone</p>
-                  <p className="text-gray-400 text-sm">+1 (555) 123-4567</p>
+                  <p className="text-gray-400 text-sm">+251 911 45 57 68</p>
                 </div>
               </div>
               

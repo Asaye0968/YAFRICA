@@ -1,4 +1,3 @@
-// src/app/api/admin/fix-products-status/route.ts
 import { NextResponse } from 'next/server'
 import { verifyAdmin } from '@/lib/adminAuth'
 import connectMongo from '@/lib/mongodb'

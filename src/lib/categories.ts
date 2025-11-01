@@ -89,58 +89,45 @@ const subcategoryConfigs: { [key: string]: { [key: string]: any } } = {
     }
   },
 
-  // CLOTHING SUBCATEGORIES (existing - keep as is)
-  'Clothing': {
-    'Men': {
-      specifications: [
-        { fieldName: 'clothingType', label: 'Clothing Type', type: 'select', required: true,
-          options: ['T-Shirt', 'Shirt', 'Pants', 'Jeans', 'Jacket', 'Sweater', 'Underwear', 'Suit', 'Shorts'] },
-        { fieldName: 'size', label: 'Size', type: 'select', required: true,
-          options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'] },
-      ],
-      filters: [
-        { fieldName: 'clothingType', label: 'Clothing Type', type: 'checkbox', required: false },
-        { fieldName: 'size', label: 'Size', type: 'checkbox', required: false },
-      ]
-    },
-    'Women': {
-      specifications: [
-        { fieldName: 'clothingType', label: 'Clothing Type', type: 'select', required: true,
-          options: ['Dress', 'Skirt', 'Blouse', 'T-Shirt', 'Pants', 'Jeans', 'Jacket', 'Sweater'] },
-        { fieldName: 'size', label: 'Size', type: 'select', required: true,
-          options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'] },
-      ],
-      filters: [
-        { fieldName: 'clothingType', label: 'Clothing Type', type: 'checkbox', required: false },
-        { fieldName: 'size', label: 'Size', type: 'checkbox', required: false },
-      ]
-    },
-    'Kids': {
-      specifications: [
-        { fieldName: 'clothingType', label: 'Clothing Type', type: 'select', required: true,
-          options: ['T-Shirt', 'Dress', 'Pants', 'Shorts', 'Jacket', 'Sweater'] },
-        { fieldName: 'size', label: 'Size', type: 'select', required: true,
-          options: ['Newborn', '0-3M', '3-6M', '6-12M', '1-2Y', '3-4Y', '5-6Y', '7-8Y', '9-10Y'] },
-      ],
-      filters: [
-        { fieldName: 'clothingType', label: 'Clothing Type', type: 'checkbox', required: false },
-        { fieldName: 'size', label: 'Size', type: 'checkbox', required: false },
-      ]
-    },
-    'Shoes': {
-      specifications: [
-        { fieldName: 'shoeType', label: 'Shoe Type', type: 'select', required: true,
-          options: ['Sneakers', 'Boots', 'Sandals', 'Formal', 'Sports', 'Casual'] },
-        { fieldName: 'size', label: 'Size', type: 'select', required: true,
-          options: ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'] },
-      ],
-      filters: [
-        { fieldName: 'shoeType', label: 'Shoe Type', type: 'checkbox', required: false },
-        { fieldName: 'size', label: 'Size', type: 'checkbox', required: false },
-      ]
-    }
+  // In your category configurations - KEEP ORIGINAL FIELD NAMES
+'Clothing': {
+  'Men': {
+    specifications: [
+      { fieldName: 'clothingType', label: 'Clothing Type', type: 'select', required: true,
+        options: ['T-Shirt', 'Shirt', 'Pants', 'Jeans', 'Jacket', 'Sweater', 'Underwear', 'Suit', 'Shorts'] },
+      { fieldName: 'size', label: 'Size', type: 'select', required: true,
+        options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'] },
+    ],
+    filters: [
+      { fieldName: 'clothingType', label: 'Clothing Type', type: 'checkbox', required: false },
+      { fieldName: 'size', label: 'Size', type: 'checkbox', required: false },
+    ]
   },
-
+  'Women': {
+    specifications: [
+      { fieldName: 'clothingType', label: 'Clothing Type', type: 'select', required: true,
+        options: ['Dress', 'Skirt', 'Blouse', 'T-Shirt', 'Pants', 'Jeans', 'Jacket', 'Sweater'] },
+      { fieldName: 'size', label: 'Size', type: 'select', required: true,
+        options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'] },
+    ],
+    filters: [
+      { fieldName: 'clothingType', label: 'Clothing Type', type: 'checkbox', required: false },
+      { fieldName: 'size', label: 'Size', type: 'checkbox', required: false },
+    ]
+  },
+  'Shoes': {
+    specifications: [
+      { fieldName: 'shoeType', label: 'Shoe Type', type: 'select', required: true,
+        options: ['Sneakers', 'Boots', 'Sandals', 'Formal', 'Sports', 'Casual'] },
+      { fieldName: 'size', label: 'Size', type: 'select', required: true,
+        options: ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'] },
+    ],
+    filters: [
+      { fieldName: 'shoeType', label: 'Shoe Type', type: 'checkbox', required: false },
+      { fieldName: 'size', label: 'Size', type: 'checkbox', required: false },
+    ]
+  }
+},
   // HOME & GARDEN SUBCATEGORIES (existing - keep as is)
   'Home & Garden': {
     'Furniture': {

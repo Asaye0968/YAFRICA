@@ -1,4 +1,3 @@
-// src/app/api/admin/dashboard/route.ts
 import { NextResponse } from 'next/server'
 import { verifyAdmin } from '@/lib/adminAuth'
 import connectMongo from '@/lib/mongodb'

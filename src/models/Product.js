@@ -23,8 +23,23 @@ const ProductSchema = new mongoose.Schema({
     type: String, 
     required: true,
     trim: true,
-    enum: ['ELECTRONICS', 'CLOTHING', 'HOME_GARDEN', 'BEAUTY_HEALTH', 'SPORTS_OUTDOORS', 'TOYS_GAMES', 'AUTOMOTIVE', 'BOOKS_MEDIA', 'JEWELRY_ACCESSORIES', 'FOOD_BEVERAGES']
-  },
+  //   enum: [
+  //   'Electronics', 'Clothing', 'Home & Garden', 'Beauty & Health', 
+  //   'Sports & Outdoors', 'Toys & Games', 'Automotive', 
+  //   'Books & Media', 'Jewelry & Accessories', 'Food & Beverages'
+  enum: [
+    'ELECTRONICS', 
+    'CLOTHING', 
+    'HOME_GARDEN', 
+    'BEAUTY_HEALTH', 
+    'SPORTS_OUTDOORS', 
+    'TOYS_GAMES', 
+    'AUTOMOTIVE', 
+    'BOOKS_MEDIA', 
+    'JEWELRY_ACCESSORIES', 
+    'FOOD_BEVERAGES'
+  ]
+},
   subcategory: { 
     type: String, 
     trim: true 

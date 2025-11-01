@@ -51,7 +51,9 @@ export async function GET(request: NextRequest) {
         { 'specifications.brand': { $regex: query, $options: 'i' } }
       ]
     }
+//added
 
+//end
     // Category filter
     if (category) {
       filter.category = category.toUpperCase()

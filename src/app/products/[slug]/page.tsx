@@ -123,7 +123,37 @@ export default function ProductDetailPage() {
 
     fetchProduct()
   }, [productSlug])
-
+//reccomendations
+// Add to your ProductDetailPage component
+useEffect(() => {
+  if (product) {
+    // Track product view
+    fetch('/api/products/track', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        productSlug: product.slug,
+        action: 'view'
+      }),
+    }).catch(console.error)
+    
+    // Track in user behavior
+    fetch('/api/recommendations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': localStorage.getItem('recommendationUserId') || 'anonymous',
+      },
+      body: JSON.stringify({
+        productId: product._id,
+        action: 'view'
+      }),
+    }).catch(console.error)
+  }
+}, [product])
+//endof reccomendations
   const handleAddToCart = () => {
     if (!product) return
     const cartProduct = getCartProduct(product)
