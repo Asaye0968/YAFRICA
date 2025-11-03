@@ -1,18 +1,21 @@
 // src/app/api/admin/users/[id]/activate/route.ts
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server' // ✅ Import NextRequest
 import { verifyAdmin } from '@/lib/adminAuth'
 import connectMongo from '@/lib/mongodb'
 import User from '@/models/User'
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest, // ✅ Change from Request to NextRequest
+  { params }: { params: Promise<{ id: string }> } // ✅ Add Promise wrapper
 ) {
   try {
-    await verifyAdmin(req as any)
+    await verifyAdmin(req)
     await connectMongo()
 
-    const user = await User.findById(params.id)
+    // ✅ FIX: Await the params in Next.js 15
+    const { id } = await params
+
+    const user = await User.findById(id)
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },

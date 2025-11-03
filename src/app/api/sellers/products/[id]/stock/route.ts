@@ -1,7 +1,5 @@
-// src/app/api/sellers/products/[id]/stock/route.ts - FIXED
 import { NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
-import mongoose from "mongoose"
 import connectMongo from "@/lib/mongodb"
 import Product from "@/models/Product"
 
@@ -20,18 +18,16 @@ function verifyToken(req: Request) {
   return payload
 }
 
-// ✅ FIXED: Add proper interface for params
+// ✅ FIXED: Proper type for Next.js 15
 interface RouteParams {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }>
 }
 
-// PATCH update product stock - FIXED AWAIT PARAMS
+// PATCH update product stock
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    // ✅ FIXED: Await the params object
-    const { id } = await Promise.resolve(params)
+    // ✅ FIXED: Properly await params
+    const { id } = await params
     
     const payload = verifyToken(request)
     await connectMongo()
@@ -47,7 +43,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     console.log('🔧 Updating product stock:', { id, inStock, stock })
 
-    // ✅ FIXED: Use the awaited id
     const product = await Product.findOne({
       _id: id,
       seller: payload.id
@@ -76,7 +71,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
     }
 
-    // ✅ FIXED: Use the awaited id
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
       update,
@@ -131,11 +125,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-// GET product stock - ADD THIS IF NEEDED
+// GET product stock
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    // ✅ FIXED: Await the params object
-    const { id } = await Promise.resolve(params)
+    // ✅ FIXED: Properly await params
+    const { id } = await params
     
     const payload = verifyToken(request)
     await connectMongo()

@@ -18,16 +18,23 @@ function verifyToken(req: Request) {
   return payload
 }
 
+// ✅ FIXED: Add proper type for params with Promise
+interface RouteParams {
+  params: Promise<{ id: string }>
+}
+
 // GET single product (seller-owned)
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
+    // ✅ FIXED: Await the params
+    const { id } = await params
     const payload = verifyToken(req)
     await connectMongo()
 
-    const product = await Product.findOne({ _id: params.id, seller: payload.id })
+    const product = await Product.findOne({ _id: id, seller: payload.id })
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
@@ -59,15 +66,16 @@ export async function GET(
 // DELETE product
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
+    // ✅ FIXED: Await the params
+    const { id } = await params
     const payload = verifyToken(req)
     await connectMongo()
 
-    // ✅ FIXED: Use 'seller' field instead of 'sellerId'
     const product = await Product.findOne({ 
-      _id: params.id, 
+      _id: id, 
       seller: payload.id 
     })
 
@@ -77,7 +85,7 @@ export async function DELETE(
       }, { status: 404 })
     }
 
-    await Product.findByIdAndDelete(params.id)
+    await Product.findByIdAndDelete(id)
 
     return NextResponse.json({ 
       success: true,
@@ -94,9 +102,11 @@ export async function DELETE(
 // PATCH update product fields (seller-owned)
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
+    // ✅ FIXED: Await the params
+    const { id } = await params
     const payload = verifyToken(req)
     await connectMongo()
 
@@ -116,7 +126,7 @@ export async function PATCH(
     if (body.inStock !== undefined) update.inStock = Boolean(body.inStock)
 
     const updated = await Product.findOneAndUpdate(
-      { _id: params.id, seller: payload.id },
+      { _id: id, seller: payload.id },
       update,
       { new: true }
     )
