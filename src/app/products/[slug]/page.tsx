@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { toast } from 'react-toastify'
+
 import {
   PhoneIcon,
   PaperAirplaneIcon,
@@ -111,70 +113,67 @@ export default function ProductDetailPage() {
             image: data.images?.[0] || '',
           }
           setProduct(processedProduct)
+          
+          // ✅ FIXED: Using toast instead of addNotification
+          toast.success(`Product "${processedProduct.name}" loaded successfully!`)
         } else {
           throw new Error(`Product not found (${res.status})`)
         }
       } catch (err: any) {
         setError('Product not found. Please check the URL and try again.')
+        // ✅ FIXED: Using toast instead of addNotification
+        toast.error('Product not found. Please check the URL and try again.')
       } finally {
         setLoading(false)
       }
     }
 
     fetchProduct()
-  }, [productSlug])
-//reccomendations
-// Add to your ProductDetailPage component
-useEffect(() => {
-  if (product) {
-    // Track product view
-    fetch('/api/products/track', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        productSlug: product.slug,
-        action: 'view'
-      }),
-    }).catch(console.error)
-    
-    // Track in user behavior
-    fetch('/api/recommendations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-user-id': localStorage.getItem('recommendationUserId') || 'anonymous',
-      },
-      body: JSON.stringify({
-        productId: product._id,
-        action: 'view'
-      }),
-    }).catch(console.error)
-  }
-}, [product])
-//endof reccomendations
+  }, [productSlug]) // ✅ REMOVED: addNotification from dependencies
+
+  // Recommendations tracking
+  useEffect(() => {
+    if (product) {
+      // Track product view
+      fetch('/api/products/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productSlug: product.slug,
+          action: 'view'
+        }),
+      }).catch(console.error)
+    }
+  }, [product])
+
   const handleAddToCart = () => {
     if (!product) return
     const cartProduct = getCartProduct(product)
     addToCart(cartProduct)
-    alert(`Added ${quantity} ${product.name} to cart!`)
+    toast.success(`Added ${quantity} ${product.name} to cart!`)
   }
 
   const handleWishlistToggle = () => {
     if (!product) return
     if (isInWishlist) {
       removeFromWishlist(product._id)
-      alert('Removed from wishlist!')
+      toast.info(`Removed ${product.name} from wishlist`)
     } else {
       const wishlistProduct = getWishlistProduct(product)
       addToWishlist(wishlistProduct)
-      alert('Added to wishlist!')
+      toast.success(`Added ${product.name} to wishlist!`)
     }
   }
 
   const handleOrderAction = () => {
-    alert(`Order placed for ${product?.name}! We'll contact you at ${phone}.`)
+    if (!product) return
+    toast.success(`Order for ${product.name} received! We'll contact you at ${phone}.`)
+  }
+
+  const handlePhoneRequired = () => {
+    toast.warning('Please enter your phone number to place an order')
   }
 
   if (loading) {
@@ -269,11 +268,11 @@ useEffect(() => {
           </button>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-10">
-          {/* Left: Image Gallery */}
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
+          {/* Left: Image Gallery - MOBILE FIRST */}
           <div className="flex-1">
             {/* Main Image */}
-            <div className="w-full h-96 lg:h-[500px] bg-white rounded-2xl overflow-hidden flex justify-center items-center mb-4 border border-gray-200 shadow-sm">
+            <div className="w-full h-80 sm:h-96 lg:h-[500px] bg-white rounded-2xl overflow-hidden flex justify-center items-center mb-4 border border-gray-200 shadow-sm">
               <img
                 src={product.images[selectedImage]}
                 alt={product.name}
@@ -286,12 +285,12 @@ useEffect(() => {
 
             {/* Image Thumbnails */}
             {product.images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2">
                 {product.images.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`flex-shrink-0 w-20 h-20 border-2 rounded-xl overflow-hidden transition-all ${
+                    className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 border-2 rounded-xl overflow-hidden transition-all ${
                       selectedImage === idx 
                         ? 'border-yellow-500 shadow-lg scale-105' 
                         : 'border-gray-200 hover:border-yellow-400'
@@ -311,7 +310,7 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Right: Product Info */}
+          {/* Right: Product Info - MOBILE FIRST */}
           <div className="flex-1 space-y-6">
             {/* Product Header */}
             <div className="space-y-3">
@@ -321,24 +320,24 @@ useEffect(() => {
                 </span>
               )}
               
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
                 {product.name}
               </h1>
 
               {/* Badges */}
               <div className="flex flex-wrap gap-2">
                 {product.isNew && (
-                  <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-semibold">
-                    NEW ARRIVAL
+                  <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                    NEW
                   </span>
                 )}
                 {product.isOnSale && (
-                  <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-semibold">
+                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
                     SALE
                   </span>
                 )}
                 {isOutOfStock && (
-                  <span className="bg-gray-500 text-white text-xs px-3 py-1 rounded-full font-semibold">
+                  <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
                     OUT OF STOCK
                   </span>
                 )}
@@ -348,17 +347,17 @@ useEffect(() => {
             {/* Price */}
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <span className="text-3xl font-bold text-yellow-600">
+                <span className="text-2xl sm:text-3xl font-bold text-yellow-600">
                   {displayPrice.toFixed(2)} Br
                 </span>
                 {product.isOnSale && product.salePrice && (
-                  <span className="text-xl text-gray-500 line-through">
+                  <span className="text-lg sm:text-xl text-gray-500 line-through">
                     {product.price.toFixed(2)} Br
                   </span>
                 )}
               </div>
               {product.isOnSale && (
-                <div className="text-green-600 font-semibold">
+                <div className="text-green-600 font-semibold text-sm sm:text-base">
                   Save {(product.price - product.salePrice!).toFixed(2)} Br!
                 </div>
               )}
@@ -384,12 +383,12 @@ useEffect(() => {
 
             {/* Description */}
             <div className="prose prose-gray max-w-none">
-              <p className="text-gray-700 leading-relaxed text-lg">
+              <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
                 {product.description}
               </p>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons - MOBILE OPTIMIZED */}
             <div className="space-y-4">
               {/* Quantity Selector */}
               {!isOutOfStock && (
@@ -398,16 +397,16 @@ useEffect(() => {
                   <div className="flex items-center border border-gray-300 rounded-lg bg-white">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-4 py-2 hover:bg-gray-100 transition-colors text-gray-600"
+                      className="px-3 sm:px-4 py-2 hover:bg-gray-100 transition-colors text-gray-600"
                     >
                       -
                     </button>
-                    <span className="px-6 py-2 border-x border-gray-300 font-medium">
+                    <span className="px-4 sm:px-6 py-2 border-x border-gray-300 font-medium">
                       {quantity}
                     </span>
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="px-4 py-2 hover:bg-gray-100 transition-colors text-gray-600"
+                      className="px-3 sm:px-4 py-2 hover:bg-gray-100 transition-colors text-gray-600"
                     >
                       +
                     </button>
@@ -415,36 +414,45 @@ useEffect(() => {
                 </div>
               )}
 
-              {/* Primary Action Buttons */}
+              {/* Primary Action Buttons - MOBILE: ICONS, DESKTOP: TEXT */}
               <div className="flex flex-col sm:flex-row gap-3">
                 {!isOutOfStock ? (
                   <>
+                    {/* Add to Cart Button */}
                     <button
                       onClick={handleAddToCart}
-                      className="flex-1 flex items-center justify-center gap-3 bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      className="flex-1 flex items-center justify-center gap-2 sm:gap-3 bg-yellow-500 hover:bg-yellow-600 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                      title="Add to Cart"
                     >
                       <ShoppingCartIcon className="w-5 h-5" />
-                      Add to Cart - {(displayPrice * quantity).toFixed(2)} Br
+                      <span className="hidden sm:inline">
+                        Add to Cart - {(displayPrice * quantity).toFixed(2)} Br
+                      </span>
+                      <span className="sm:hidden">
+                        Cart - {(displayPrice * quantity).toFixed(2)} Br
+                      </span>
                     </button>
                     
+                    {/* Wishlist Button */}
                     <button
                       onClick={handleWishlistToggle}
-                      className="flex items-center justify-center gap-3 border-2 border-gray-300 hover:border-yellow-500 text-gray-700 hover:text-yellow-600 px-8 py-4 rounded-xl transition-all duration-200 font-semibold hover:shadow-lg"
+                      className="flex items-center justify-center gap-2 sm:gap-3 border-2 border-gray-300 hover:border-yellow-500 text-gray-700 hover:text-yellow-600 px-4 sm:px-8 py-3 sm:py-4 rounded-xl transition-all duration-200 font-semibold hover:shadow-lg"
+                      title={isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
                     >
                       {isInWishlist ? (
                         <HeartSolidIcon className="w-5 h-5 text-red-500" />
                       ) : (
                         <HeartIcon className="w-5 h-5" />
                       )}
-                      Wishlist
+                      <span className="hidden sm:inline">Wishlist</span>
                     </button>
                   </>
                 ) : (
-                  <div className="bg-gray-100 rounded-xl p-6 text-center">
-                    <p className="text-gray-600 font-medium text-lg">
+                  <div className="bg-gray-100 rounded-xl p-4 sm:p-6 text-center">
+                    <p className="text-gray-600 font-medium text-base sm:text-lg">
                       This product is currently out of stock
                     </p>
-                    <p className="text-gray-500 text-sm mt-2">
+                    <p className="text-gray-500 text-xs sm:text-sm mt-2">
                       Check back later or contact us for availability
                     </p>
                   </div>
@@ -453,22 +461,22 @@ useEffect(() => {
             </div>
 
             {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-gray-200">
-              <div className="flex items-center gap-3 text-gray-600">
-                <TruckIcon className="w-5 h-5 text-green-500" />
-                <span className="font-medium">Free Shipping</span>
-                <span className="text-sm">Over 500 Br</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-6 border-t border-gray-200">
+              <div className="flex items-center gap-2 sm:gap-3 text-gray-600">
+                <TruckIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                <span className="font-medium text-sm sm:text-base">Free Shipping</span>
+                <span className="text-xs sm:text-sm">Over 500 Br</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-600">
-                <ShieldCheckIcon className="w-5 h-5 text-blue-500" />
-                <span className="font-medium">Warranty</span>
-                <span className="text-sm">2 Years Included</span>
+              <div className="flex items-center gap-2 sm:gap-3 text-gray-600">
+                <ShieldCheckIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                <span className="font-medium text-sm sm:text-base">Warranty</span>
+                <span className="text-xs sm:text-sm">2 Years</span>
               </div>
             </div>
 
             {/* Contact Methods */}
             <div className="pt-6 border-t border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">
                 Order Directly
               </h3>
               
@@ -476,17 +484,19 @@ useEffect(() => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <button
                   onClick={handleOrderAction}
-                  className="flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                  className="flex items-center justify-center gap-2 sm:gap-3 bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
                 >
-                  <PhoneIcon className="w-5 h-5" />
-                  Call 0912 61 08 50
+                  <PhoneIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Call 0912 61 08 50</span>
+                  <span className="sm:hidden">Call: 0912 61 08 50</span>
                 </button>
                 <button
                   onClick={handleOrderAction}
-                  className="flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                  className="flex items-center justify-center gap-2 sm:gap-3 bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
                 >
-                  <PhoneIcon className="w-5 h-5" />
-                  Call 0929 92 22 89
+                  <PhoneIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Call 0929 92 22 89</span>
+                  <span className="sm:hidden">Call: 0929 92 22 89</span>
                 </button>
               </div>
 
@@ -495,28 +505,30 @@ useEffect(() => {
                 <button
                   onClick={() => {
                     if (!phone) {
-                      alert('Please enter your phone number first')
+                      handlePhoneRequired()
                       return
                     }
                     window.open(shareOnTelegram(product, phone, quantity, displayPrice), '_blank')
                   }}
-                  className="flex items-center justify-center gap-3 bg-blue-500 hover:bg-blue-600 text-white px-6 py-4 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                  className="flex items-center justify-center gap-2 sm:gap-3 bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
                 >
-                  <PaperAirplaneIcon className="w-5 h-5" />
-                  Order on Telegram
+                  <PaperAirplaneIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Order on Telegram</span>
+                  <span className="sm:hidden">Telegram</span>
                 </button>
                 <button
                   onClick={() => {
                     if (!phone) {
-                      alert('Please enter your phone number first')
+                      handlePhoneRequired()
                       return
                     }
                     window.open(shareOnWhatsApp(product, phone, quantity, displayPrice), '_blank')
                   }}
-                  className="flex items-center justify-center gap-3 bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                  className="flex items-center justify-center gap-2 sm:gap-3 bg-green-500 hover:bg-green-600 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
                 >
-                  <ChatBubbleLeftRightIcon className="w-5 h-5" />
-                  Order on WhatsApp
+                  <ChatBubbleLeftRightIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Order on WhatsApp</span>
+                  <span className="sm:hidden">WhatsApp</span>
                 </button>
               </div>
 
@@ -534,13 +546,14 @@ useEffect(() => {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Enter your phone number"
                   required
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-lg"
                 />
                 <button
                   type="submit"
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-3 rounded-xl font-semibold transition-colors whitespace-nowrap text-lg"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 sm:px-8 py-2 sm:py-3 rounded-xl font-semibold transition-colors whitespace-nowrap text-sm sm:text-lg"
                 >
-                  Order by Phone
+                  <span className="hidden sm:inline">Order by Phone</span>
+                  <span className="sm:hidden">Phone Order</span>
                 </button>
               </form>
 
@@ -552,11 +565,12 @@ useEffect(() => {
                     addToCart(cartProduct)
                     router.push('/checkout')
                   }}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200 text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-semibold transition-all duration-200 text-sm sm:text-lg shadow-lg hover:shadow-xl"
                 >
-                  🛒 Proceed to Secure Checkout
+                  <span className="hidden sm:inline">🛒 Proceed to Secure Checkout</span>
+                  <span className="sm:hidden">🛒 Secure Checkout</span>
                 </button>
-                <p className="text-sm text-gray-600 text-center mt-3">
+                <p className="text-xs sm:text-sm text-gray-600 text-center mt-3">
                   Secure payment • Multiple payment options • Fast delivery
                 </p>
               </div>
@@ -565,28 +579,28 @@ useEffect(() => {
         </div>
 
         {/* Additional Product Info Tabs */}
-        <div className="mt-12 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="mt-8 sm:mt-12 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="border-b border-gray-200">
-            <nav className="flex space-x-8">
+            <nav className="flex space-x-4 sm:space-x-8 overflow-x-auto">
               {['description', 'specifications'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`py-6 px-4 border-b-2 font-semibold text-lg capitalize transition-colors ${
+                  className={`py-4 sm:py-6 px-3 sm:px-4 border-b-2 font-semibold text-sm sm:text-lg capitalize transition-colors whitespace-nowrap ${
                     activeTab === tab
                       ? 'border-yellow-500 text-yellow-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {tab === 'description' ? 'Product Description' : 'Specifications'}
+                  {tab === 'description' ? 'Description' : 'Specifications'}
                 </button>
               ))}
             </nav>
           </div>
 
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             {activeTab === 'description' && (
-              <div className="prose prose-lg max-w-none">
+              <div className="prose prose-sm sm:prose-lg max-w-none">
                 <p className="text-gray-700 leading-relaxed">
                   {product.description}
                 </p>
@@ -594,11 +608,11 @@ useEffect(() => {
             )}
 
             {activeTab === 'specifications' && product.specifications && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {Object.entries(product.specifications).map(([key, value]) => (
-                  <div key={key} className="flex justify-between py-3 border-b border-gray-100">
-                    <span className="font-semibold text-gray-600">{key}</span>
-                    <span className="text-gray-900 text-right">{value}</span>
+                  <div key={key} className="flex justify-between py-2 sm:py-3 border-b border-gray-100">
+                    <span className="font-semibold text-gray-600 text-sm sm:text-base">{key}</span>
+                    <span className="text-gray-900 text-right text-sm sm:text-base">{value}</span>
                   </div>
                 ))}
               </div>
