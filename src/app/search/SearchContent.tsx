@@ -14,9 +14,10 @@ import {
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
-import { useWishlist } from '../../contexts/WishlistContext'
+import { useWishlist } from '../contexts/WishlistContext'
+// import { getCategoryConfig, getAllCategories, getSubcategories } from '@/lib/categories'
+import { useCart } from '../contexts/CartContext'
 import { getCategoryConfig, getAllCategories, getSubcategories } from '@/lib/categories'
-import { useCart } from '../../contexts/CartContext'
 
 type Product = {
   _id: string
