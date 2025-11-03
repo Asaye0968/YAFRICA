@@ -46,7 +46,6 @@ type Product = {
   createdAt?: string
   isDemo?: boolean
 }
-export const dynamic = 'force-dynamic'
 
 // Price range options like Jiji
 const priceRanges = [
