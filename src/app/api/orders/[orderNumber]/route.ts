@@ -5,12 +5,14 @@ import Order from '@/models/Order'
 
 export async function GET(
   req: Request,
-  { params }: { params: { orderNumber: string } }
+  context: { params: Promise<{ orderNumber: string }> }
 ) {
   try {
     await connectMongo()
 
-    const order = await Order.findOne({ orderNumber: params.orderNumber })
+    // Await the params
+    const { orderNumber } = await context.params
+    const order = await Order.findOne({ orderNumber })
     
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
