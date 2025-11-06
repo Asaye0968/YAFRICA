@@ -26,7 +26,11 @@ export default function WishlistPage() {
   const viewProduct = (product: any) => {
     router.push(`/products/${product.slug || product._id}`)
   }
-
+ const handleMoveToCart = (product: any) => {
+    moveToCart(product)
+    // Redirect to cart page after moving
+    router.push('/cart')
+  }
   const totalValue = wishlistItems.reduce((sum, item) => {
     const price = item.isOnSale && item.salePrice ? item.salePrice : item.price
     return sum + price
@@ -287,15 +291,15 @@ export default function WishlistPage() {
                         View Details
                       </button>
                       
-                      {!isOutOfStock && (
-                        <button 
-                          className="w-full inline-flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-600 hover:border-yellow-500 dark:hover:border-yellow-400 text-gray-700 dark:text-gray-300 hover:text-yellow-600 dark:hover:text-yellow-400 px-4 py-3 rounded-xl transition-all duration-200 font-medium group/cart"
-                          onClick={() => moveToCart(product)}
-                        >
-                          <ShoppingCartIcon className="w-4 h-4" />
-                          Move to Cart
-                        </button>
-                      )}
+                     {!isOutOfStock && (
+    <button 
+      className="w-full inline-flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-600 hover:border-yellow-500 dark:hover:border-yellow-400 text-gray-700 dark:text-gray-300 hover:text-yellow-600 dark:hover:text-yellow-400 px-4 py-3 rounded-xl transition-all duration-200 font-medium group/cart"
+      onClick={() => handleMoveToCart(product)}
+    >
+      <ShoppingCartIcon className="w-4 h-4" />
+      Move to Cart
+    </button>
+  )}
                     </div>
                   </div>
                 </div>

@@ -39,7 +39,7 @@ export default function CartPage() {
   }
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax() + calculateShipping()
+    return calculateSubtotal()  + calculateShipping()
   }
 
   const getTotalItems = () => {
@@ -411,12 +411,12 @@ const handleCheckout = async () => {
                     </span>
                   </div>
                   
-                  <div className="flex justify-between">
+                  {/* <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Tax</span>
                     <span className="font-semibold text-gray-900 dark:text-white">
                       ${calculateTax().toFixed(2)}
                     </span>
-                  </div>
+                  </div> */}
                   
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <div className="flex justify-between">
