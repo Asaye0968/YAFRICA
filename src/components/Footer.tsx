@@ -127,10 +127,9 @@ export default function Footer() {
               {[
                 { name: 'Home', href: '/' },
                 { name: 'Products', href: '/products' },
-                { name: 'Hot Deals', href: '/deals' },
                 { name: 'New Arrivals', href: '/products?new=true' },
                 { name: 'Best Sellers', href: '/products?bestsellers=true' },
-                { name: 'Categories', href: '/categories' }
+                // { name: 'Categories', href: '/categories' }
               ].map((link) => (
                 <li key={link.name}>
                   <Link
@@ -158,8 +157,8 @@ export default function Footer() {
                 { name: 'Shipping Info', href: '/shipping' },
                 { name: 'Returns & Refunds', href: '/returns' },
                 { name: 'FAQ', href: '/faq' },
-                { name: 'Track Order', href: '/track-order' },
-                { name: 'Size Guide', href: '/size-guide' }
+                // { name: 'Track Order', href: '/track-order' },
+                // { name: 'Size Guide', href: '/size-guide' }
               ].map((link) => (
                 <li key={link.name}>
                   <Link
