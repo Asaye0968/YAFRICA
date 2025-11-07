@@ -2471,6 +2471,7 @@ import {
   EyeOff,
   CreditCard
 } from 'lucide-react'
+import { toast } from 'react-toastify'
 
 // =========================
 // Types
@@ -4218,7 +4219,72 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [flash, setFlash] = useState('')
-  
+// Add this state
+const [currentFilter, setCurrentFilter] = useState('pending');
+
+// Update your fetchPaymentProofs function
+const fetchPaymentProofs = async (filter = 'pending') => {
+  try {
+    setReceiptsLoading(true);
+    setCurrentFilter(filter);
+    console.log('🔄 Fetching payment proofs with filter:', filter);
+    
+    const response = await fetch(`/api/admin/payment-proofs?filter=${filter}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Payment proofs fetched:', data.paymentProofs);
+      
+      // Transform the data to match OrderTicket type
+      const transformedReceipts: OrderTicket[] = data.paymentProofs.map((proof: any) => ({
+        id: proof._id,
+        _id: proof._id,
+        orderNumber: proof.orderNumber,
+        customerInfo: {
+          fullName: proof.customerInfo?.fullName || 'Unknown Customer',
+          phone: proof.customerInfo?.phone || '',
+          email: proof.customerInfo?.email || '',
+          address: proof.customerInfo?.address || ''
+        },
+        items: proof.items || [],
+        totalAmount: proof.totalAmount || 0,
+        paymentMethod: proof.paymentMethod || '',
+        bankDetails: proof.bankDetails,
+        timestamp: proof.createdAt || new Date().toISOString(),
+        createdAt: proof.createdAt,
+        updatedAt: proof.updatedAt,
+        status: proof.status || 'pending',
+        paymentProof: proof.paymentProof ? {
+          imageUrl: proof.paymentProof.imageUrl,
+          uploadedAt: proof.paymentProof.uploadedAt,
+          verified: proof.paymentProof.verified || false,
+          verifiedBy: proof.paymentProof.verifiedBy,
+          verifiedAt: proof.paymentProof.verifiedAt
+        } : undefined,
+        adminVerified: proof.paymentProof?.verified || false,
+        adminVerifiedAt: proof.paymentProof?.verifiedAt,
+        adminNotes: proof.adminNotes
+      }));
+      
+      setReceipts(transformedReceipts);
+    } else {
+      console.error('Failed to fetch payment proofs');
+      toast.error('Failed to load payment proofs');
+    }
+  } catch (error) {
+    console.error(' Error fetching payment proofs:', error);
+    toast.error('Error loading payment proofs');
+  } finally {
+    setReceiptsLoading(false);
+  }
+};
+
+// Update your useEffect
+useEffect(() => {
+  if (activeSection === 'payments') {
+    fetchPaymentProofs('pending'); // Default to pending when section opens
+  }
+}, [activeSection]);
   // State for data
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
@@ -4244,7 +4310,7 @@ function DashboardContent() {
         const authData = await authRes.json()
         
         if (!authData.loggedIn || authData.user.role !== 'admin') {
-          router.push('/admin/login')
+          router.push('/signin')
           return
         }
         
@@ -4254,7 +4320,7 @@ function DashboardContent() {
         const statsRes = await fetch('/api/admin/dashboard')
         if (statsRes.ok) {
           const statsData = await statsRes.json()
-          console.log('📊 Stats data:', statsData)
+          console.log(' Stats data:', statsData)
           setStats(statsData.stats || {
             totalUsers: 0,
             totalSellers: 0,
@@ -4271,11 +4337,11 @@ function DashboardContent() {
         const productsRes = await fetch('/api/admin/products?status=all&limit=100')
         if (productsRes.ok) {
           const productsData = await productsRes.json()
-          console.log('📦 Products data:', productsData)
+          console.log(' Products data:', productsData)
           const safeProducts = Array.isArray(productsData.products) ? productsData.products : []
           setProducts(safeProducts)
         } else {
-          console.error('❌ Failed to fetch products')
+          console.error(' Failed to fetch products')
           setProducts([])
         }
 
@@ -4287,7 +4353,7 @@ function DashboardContent() {
           const safeUsers = Array.isArray(usersData.users) ? usersData.users : []
           setUsers(safeUsers)
         } else {
-          console.error('❌ Failed to fetch users')
+          console.error(' Failed to fetch users')
           setUsers([])
         }
 
@@ -4300,7 +4366,7 @@ function DashboardContent() {
             const safeSellers = Array.isArray(sellersData.users) ? sellersData.users : []
             setSellers(safeSellers)
           } else {
-            console.error('❌ Failed to fetch sellers')
+            console.error(' Failed to fetch sellers')
             setSellers([])
           }
         }
@@ -4348,7 +4414,7 @@ function DashboardContent() {
 
   const handleApproveProduct = async (productId: string) => {
     try {
-      console.log('🔄 Approving product:', productId)
+      console.log(' Approving product:', productId)
       
       const response = await fetch(`/api/admin/products/${productId}/approve`, {
         method: 'PATCH'
@@ -4356,7 +4422,7 @@ function DashboardContent() {
       
       if (response.ok) {
         const result = await response.json()
-        console.log('✅ Product approved successfully:', result)
+        console.log('Product approved successfully:', result)
         
         // Refresh products data
         await refreshProducts()
@@ -4364,18 +4430,18 @@ function DashboardContent() {
         alert('Product approved successfully!')
       } else {
         const error = await response.json()
-        console.error('❌ Failed to approve product:', error)
+        console.error(' Failed to approve product:', error)
         alert(error.error || 'Failed to approve product')
       }
     } catch (error) {
-      console.error('❌ Failed to approve product:', error)
+      console.error('Failed to approve product:', error)
       alert('Failed to approve product')
     }
   }
 
   const handleRejectProduct = async (productId: string) => {
     try {
-      console.log('🔄 Rejecting product:', productId)
+      console.log(' Rejecting product:', productId)
       
       const response = await fetch(`/api/admin/products/${productId}/reject`, {
         method: 'PATCH'
@@ -4383,7 +4449,7 @@ function DashboardContent() {
       
       if (response.ok) {
         const result = await response.json()
-        console.log('✅ Product rejected successfully:', result)
+        console.log(' Product rejected successfully:', result)
         
         // Refresh products data
         await refreshProducts()
@@ -4854,204 +4920,370 @@ function DashboardContent() {
                 />
               )}
 
-              {activeSection === 'payments' && (
-                <div className="space-y-6">
-                  {/* Header */}
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Payment Approval</h3>
-                        <p className="text-gray-600 text-sm">Review and verify payment proofs from customers</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                          <span className="text-gray-600">Pending: {receipts.filter(r => r.status === 'pending').length}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                          <span className="text-gray-600">Approved: {receipts.filter(r => r.status === 'approved').length}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                          <span className="text-gray-600">Rejected: {receipts.filter(r => r.status === 'rejected').length}</span>
-                        </div>
-                      </div>
+{activeSection === 'payments' && (
+  <div className="space-y-6">
+    {/* Header */}
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Payment Approval</h3>
+          <p className="text-gray-600 text-sm">Review and verify payment proofs from customers</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+            <span className="text-gray-600">Pending: {receipts.filter(r => r.status === 'pending').length}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="text-gray-600">Approved: {receipts.filter(r => r.status === 'approved' || r.status === 'confirmed').length}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span className="text-gray-600">Rejected: {receipts.filter(r => r.status === 'rejected' || r.status === 'cancelled').length}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Filter Tabs - ADD THIS SECTION */}
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => fetchPaymentProofs('pending')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+            currentFilter === 'pending'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Pending
+        </button>
+        <button
+          onClick={() => fetchPaymentProofs('approved')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+            currentFilter === 'approved'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Approved
+        </button>
+        <button
+          onClick={() => fetchPaymentProofs('rejected')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+            currentFilter === 'rejected'
+              ? 'bg-red-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+           Rejected
+        </button>
+        <button
+          onClick={() => fetchPaymentProofs('all')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+            currentFilter === 'all'
+              ? 'bg-purple-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          All Payments
+        </button>
+      </div>
+    </div>
+
+    {/* Loading State */}
+    {receiptsLoading && (
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 text-center">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading payment proofs...</p>
+      </div>
+    )}
+
+    {/* Payment Proofs Grid */}
+    {!receiptsLoading && (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {receipts.map((receipt) => {
+          // Safely extract data with fallbacks
+          const orderNumber = receipt.orderNumber || receipt.id || 'N/A';
+          const customerName = receipt.customerInfo?.fullName || 'Unknown Customer';
+          const customerEmail = receipt.customerInfo?.email || 'No email';
+          const totalAmount = receipt.totalAmount || 0;
+          const status = receipt.status || 'pending';
+          const paymentProof = receipt.paymentProof;
+          const timestamp = receipt.timestamp || receipt.createdAt || receipt.updatedAt || new Date().toISOString();
+          
+          // ✅ FIXED: Get proper image URL
+          const getImageUrl = () => {
+            if (!paymentProof?.imageUrl) {
+              return '/api/placeholder/400/200?text=No+Image+Uploaded';
+            }
+
+            const originalUrl = paymentProof.imageUrl;
+            
+            // Handle different URL types
+            if (originalUrl.startsWith('http') || originalUrl.startsWith('data:')) {
+              return originalUrl;
+            }
+
+            // Extract filename from any path format
+            const filename = originalUrl.split(/[\\/]/).pop();
+            
+            if (filename) {
+              return `/uploads/payment-proofs/${filename}`;
+            }
+
+            return '/api/placeholder/400/200?text=Invalid+Image+URL';
+          };
+
+          const imageUrl = getImageUrl();
+
+          return (
+            <div key={receipt._id || receipt.id || orderNumber} className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300">
+              {/* Header */}
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Order #{orderNumber}</h4>
+                    <p className="text-xs text-gray-500">
+                      {new Date(timestamp).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    status === 'pending' 
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                      : status === 'approved' || status === 'confirmed'
+                      ? 'bg-green-100 text-green-800 border border-green-200'
+                      : status === 'rejected' || status === 'cancelled'
+                      ? 'bg-red-100 text-red-800 border border-red-200'
+                      : 'bg-gray-100 text-gray-800 border border-gray-200'
+                  }`}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Customer Info */}
+              <div className="p-4 border-b border-gray-200">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Customer:</span>
+                    <span className="font-medium text-gray-900">
+                      {customerName}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Email:</span>
+                    <span className="font-medium text-gray-900 truncate ml-2">
+                      {customerEmail}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Amount:</span>
+                    <span className="font-bold text-green-600">
+                      ${totalAmount.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Proof Image */}
+              {paymentProof?.imageUrl ? (
+                <div className="p-4 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Payment Proof:</p>
+                  <div className="relative aspect-video bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
+                    <img
+                      src={imageUrl}
+                      alt={`Payment proof for order ${orderNumber}`}
+                      className="w-full h-full object-contain bg-white cursor-pointer hover:opacity-95 transition-opacity"
+                      onError={(e) => {
+                        console.log(`❌ Image failed to load for ${orderNumber}:`, imageUrl);
+                        e.currentTarget.src = '/api/placeholder/400/200?text=Image+Failed+to+Load';
+                        e.currentTarget.alt = 'Payment proof image failed to load';
+                      }}
+                      onClick={() => {
+                        console.log('🖼️ Opening image in new tab:', imageUrl);
+                        window.open(imageUrl, '_blank', 'noopener,noreferrer');
+                      }}
+                    />
+                  </div>
+                  {paymentProof.verified && (
+                    <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Verified by {paymentProof.verifiedBy} on {new Date(paymentProof.verifiedAt!).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Payment Proof:</p>
+                  <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div className="text-center text-gray-500">
+                      <CreditCard className="w-8 h-8 mx-auto mb-2" />
+                      <p className="text-sm">No proof uploaded</p>
                     </div>
                   </div>
-
-                  {/* Loading State */}
-                  {receiptsLoading && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 text-center">
-                      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p className="text-gray-600">Loading payment proofs...</p>
-                    </div>
-                  )}
-
-                  {/* Payment Proofs Grid */}
-                  {!receiptsLoading && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {receipts.map((receipt) => (
-                        <div key={receipt.id} className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300">
-                          {/* Header */}
-                          <div className="p-4 border-b border-gray-200 bg-gray-50">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h4 className="font-semibold text-gray-900 text-sm">Order #{receipt.orderNumber}</h4>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(receipt.timestamp).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                receipt.status === 'pending' 
-                                  ? 'bg-amber-100 text-amber-800 border border-amber-200' 
-                                  : receipt.status === 'approved'
-                                  ? 'bg-green-100 text-green-800 border border-green-200'
-                                  : receipt.status === 'rejected'
-                                  ? 'bg-red-100 text-red-800 border border-red-200'
-                                  : 'bg-gray-100 text-gray-800 border border-gray-200'
-                              }`}>
-                                {receipt.status.charAt(0).toUpperCase() + receipt.status.slice(1)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Customer Info */}
-                          <div className="p-4 border-b border-gray-200">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600">Customer:</span>
-                                <span className="font-medium text-gray-900">
-                                  {receipt.customerInfo.fullName}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600">Email:</span>
-                                <span className="font-medium text-gray-900 truncate ml-2">
-                                  {receipt.customerInfo.email}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600">Amount:</span>
-                                <span className="font-bold text-green-600">
-                                  ${receipt.totalAmount}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Payment Proof Image */}
-                          {receipt.paymentProof && (
-                            <div className="p-4 border-b border-gray-200">
-                              <p className="text-sm font-medium text-gray-700 mb-2">Payment Proof:</p>
-                              <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-                                <img
-                                  src={receipt.paymentProof.imageUrl}
-                                  alt={`Payment proof for order ${receipt.orderNumber}`}
-                                  className="w-full h-full object-cover"
-                                  onClick={() => window.open(receipt.paymentProof!.imageUrl, '_blank')}
-                                />
-                                <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
-                                  <Eye className="w-6 h-6 text-white opacity-0 hover:opacity-100 transition-opacity" />
-                                </div>
-                              </div>
-                              {receipt.paymentProof.verified && (
-                                <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                                  <CheckCircle className="w-3 h-3" />
-                                  Verified by {receipt.paymentProof.verifiedBy} on {new Date(receipt.paymentProof.verifiedAt!).toLocaleDateString()}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Actions - Only show for pending payments */}
-                          {receipt.status === 'pending' && receipt.paymentProof && (
-                            <div className="p-4">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={async () => {
-                                    try {
-                                      const response = await fetch(`/api/admin/orders/${receipt.id}/approve-payment`, {
-                                        method: 'PATCH'
-                                      });
-                                      if (response.ok) {
-                                        const updatedReceipts = receipts.map(r =>
-                                          r.id === receipt.id ? { ...r, status: 'approved' } : r
-                                        );
-                                        setReceipts(updatedReceipts);
-                                        alert('Payment approved successfully!');
-                                      } else {
-                                        alert('Failed to approve payment');
-                                      }
-                                    } catch (error) {
-                                      console.error('Error approving payment:', error);
-                                      alert('Failed to approve payment');
-                                    }
-                                  }}
-                                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    try {
-                                      const response = await fetch(`/api/admin/orders/${receipt.id}/reject-payment`, {
-                                        method: 'PATCH'
-                                      });
-                                      if (response.ok) {
-                                        const updatedReceipts = receipts.map(r =>
-                                          r.id === receipt.id ? { ...r, status: 'rejected' } : r
-                                        );
-                                        setReceipts(updatedReceipts);
-                                        alert('Payment rejected successfully!');
-                                      } else {
-                                        alert('Failed to reject payment');
-                                      }
-                                    } catch (error) {
-                                      console.error('Error rejecting payment:', error);
-                                      alert('Failed to reject payment');
-                                    }
-                                  }}
-                                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                  Reject
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Status Message for non-pending receipts */}
-                          {receipt.status !== 'pending' && receipt.paymentProof && (
-                            <div className="p-4 bg-gray-50">
-                              <p className="text-sm text-gray-600 text-center">
-                                {receipt.status === 'approved' 
-                                  ? 'Payment was approved' 
-                                  : receipt.status === 'rejected'
-                                  ? 'Payment was rejected'
-                                  : 'Order is ' + receipt.status}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Empty State */}
-                  {!receiptsLoading && receipts.length === 0 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-12 text-center">
-                      <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No Payment Proofs</h3>
-                      <p className="text-gray-600 max-w-md mx-auto">
-                        There are no payment proofs awaiting approval. Check back later for new submissions.
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 
+              {/* Actions - Only show for pending payments */}
+              {status === 'pending' && paymentProof?.imageUrl && currentFilter === 'pending' && (
+                <div className="p-4">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const orderId = receipt._id || receipt.id;
+                          if (!orderId) {
+                            console.error('No order ID found for receipt:', receipt);
+                            toast.error('Error: Missing order ID');
+                            return;
+                          }
+                          
+                          console.log('🔄 Approving payment for order:', orderNumber);
+                          
+                          const response = await fetch(`/api/admin/orders/${orderId}/verify`, {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              status: 'confirmed',
+                              adminNotes: 'Payment verified by admin'
+                            })
+                          });
+                          
+                          if (response.ok) {
+                            // Remove from current view and refresh counts
+                            setReceipts(prev => prev.filter(r => r._id !== orderId));
+                            toast.success(`Payment for order ${orderNumber} approved successfully!`);
+                          } else {
+                            const errorData = await response.json();
+                            toast.error(errorData.error || 'Failed to approve payment');
+                          }
+                        } catch (error) {
+                          console.error('Error approving payment:', error);
+                          toast.error('Failed to approve payment');
+                        }
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Approve
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const orderId = receipt._id || receipt.id;
+                          if (!orderId) {
+                            console.error('No order ID found for receipt:', receipt);
+                            toast.error('Error: Missing order ID');
+                            return;
+                          }
+                          
+                          const reason = prompt('Please provide a reason for rejection:');
+                          if (!reason) return;
+                          
+                          console.log('🔄 Rejecting payment for order:', orderNumber, 'Reason:', reason);
+                          
+                          const response = await fetch(`/api/admin/orders/${orderId}/verify`, {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              status: 'cancelled',
+                              adminNotes: reason
+                            })
+                          });
+                          
+                          if (response.ok) {
+                            // Remove from current view and refresh counts
+                            setReceipts(prev => prev.filter(r => r._id !== orderId));
+                            toast.success(`Payment for order ${orderNumber} rejected successfully!`);
+                          } else {
+                            const errorData = await response.json();
+                            toast.error(errorData.error || 'Failed to reject payment');
+                          }
+                        } catch (error) {
+                          console.error('Error rejecting payment:', error);
+                          toast.error('Failed to reject payment');
+                        }
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Details for non-pending receipts */}
+              {status !== 'pending' && (
+                <div className="p-4 bg-gray-50">
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <p className="text-center font-medium">
+                      {status === 'approved' || status === 'confirmed'
+                        ? '✅ Payment Approved' 
+                        : status === 'rejected' || status === 'cancelled'
+                        ? '❌ Payment Rejected'
+                        : `Order is ${status}`}
+                    </p>
+                    {receipt.adminNotes && (
+                      <p className="text-xs">
+                        <span className="font-medium">Note:</span> {receipt.adminNotes}
+                      </p>
+                    )}
+                    {paymentProof?.verifiedAt && (
+                      <p className="text-xs">
+                        <span className="font-medium">Processed:</span> {new Date(paymentProof.verifiedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    )}
+
+    {/* Empty State */}
+    {!receiptsLoading && receipts.length === 0 && (
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-12 text-center">
+        <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          {currentFilter === 'pending' && 'No Pending Payments'}
+          {currentFilter === 'approved' && 'No Approved Payments'}
+          {currentFilter === 'rejected' && 'No Rejected Payments'}
+          {currentFilter === 'all' && 'No Payment Proofs'}
+        </h3>
+        <p className="text-gray-600 max-w-md mx-auto">
+          {currentFilter === 'pending' && 'There are no payment proofs awaiting approval. Check back later for new submissions.'}
+          {currentFilter === 'approved' && 'No payments have been approved yet. Approve some pending payments to see them here.'}
+          {currentFilter === 'rejected' && 'No payments have been rejected yet.'}
+          {currentFilter === 'all' && 'There are no payment proofs in the system.'}
+        </p>
+      </div>
+    )}
+
+    {/* Refresh Button */}
+    {!receiptsLoading && receipts.length > 0 && (
+      <div className="text-center">
+        <button
+          onClick={() => fetchPaymentProofs(currentFilter)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh {currentFilter === 'pending' ? 'Pending' : currentFilter === 'approved' ? 'Approved' : currentFilter === 'rejected' ? 'Rejected' : 'All'}
+        </button>
+      </div>
+    )}
+  </div>
+)}
               {activeSection === 'analytics' && (
                 <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
                   <div className="text-center py-12">

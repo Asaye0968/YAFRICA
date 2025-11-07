@@ -60,59 +60,67 @@ export default function OrderTicketDisplay({ ticket, onDownload, onProofUpload }
   }, [ticket.orderNumber, ticketStatus.adminVerified])
 
   const handleProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const file = e.target.files?.[0]
+  if (!file) return
 
-    setUploadingProof(true)
+  // Validate file type and size
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+  if (!validTypes.includes(file.type)) {
+    toast.error('Please upload a valid image file (JPEG, PNG, GIF, WebP)', {
+      position: "top-right",
+      autoClose: 5000,
+    })
+    return
+  }
+
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+  if (file.size > maxSize) {
+    toast.error('Image size should be less than 5MB', {
+      position: "top-right",
+      autoClose: 5000,
+    })
+    return
+  }
+
+  setUploadingProof(true)
+  
+  try {
+    const formData = new FormData()
+    formData.append('paymentProof', file)
+    formData.append('orderNumber', ticket.orderNumber)
     
-    try {
-      const formData = new FormData()
-      formData.append('paymentProof', file)
-      formData.append('orderNumber', ticket.orderNumber)
-      
-      const response = await fetch('/api/upload-payment', {
-        method: 'POST',
-        body: formData
-      })
+    console.log('🔄 Uploading payment proof for order:', ticket.orderNumber)
+    
+    const response = await fetch('/api/upload-payment', {
+      method: 'POST',
+      body: formData
+    })
 
-      if (response.ok) {
-        const data = await response.json()
-        const imageUrl = data.imageUrl
-        
-        if (onProofUpload) {
-          onProofUpload(ticket, imageUrl)
+    const data = await response.json()
+    
+    if (response.ok) {
+      console.log('✅ Upload successful:', data)
+      
+      // Create the updated ticket with the new payment proof
+      const updatedTicket = {
+        ...ticketStatus,
+        paymentProof: {
+          imageUrl: data.imageUrl,
+          uploadedAt: new Date().toISOString(),
+          verified: false
         }
-        
-        // Update local state
-        setTicketStatus(prev => ({
-          ...prev,
-          paymentProof: {
-            imageUrl,
-            uploadedAt: new Date().toISOString(),
-            verified: false
-          }
-        }))
-        
-        toast.success('Payment proof uploaded successfully! Admin will verify your payment.', {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        })
-      } else {
-        toast.error('Failed to upload payment proof. Please try again.', {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        })
       }
-    } catch (error) {
-      toast.error('Error uploading payment proof. Please try again.', {
+      
+      // Update local state
+      setTicketStatus(updatedTicket)
+      
+      // Call the parent callback if provided
+      if (onProofUpload) {
+        onProofUpload(updatedTicket, data.imageUrl)
+      }
+      
+      toast.success('Payment proof uploaded successfully! Admin will verify your payment.', {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
@@ -120,10 +128,59 @@ export default function OrderTicketDisplay({ ticket, onDownload, onProofUpload }
         pauseOnHover: true,
         draggable: true,
       })
-    } finally {
-      setUploadingProof(false)
+      
+      // Also update the order in the database with the payment proof
+      await updateOrderWithPaymentProof(data.imageUrl)
+      
+    } else {
+      console.error('❌ Upload failed:', data)
+      toast.error(data.error || 'Failed to upload payment proof. Please try again.', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      })
     }
+  } catch (error) {
+    console.error('❌ Upload error:', error)
+    toast.error('Network error uploading payment proof. Please check your connection.', {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    })
+  } finally {
+    setUploadingProof(false)
+    // Reset the file input
+    e.target.value = ''
   }
+}
+
+// Add this helper function to update the order in database
+const updateOrderWithPaymentProof = async (imageUrl: string) => {
+  try {
+    const response = await fetch(`/api/orders/${ticket.orderNumber}/payment-proof`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        imageUrl,
+        uploadedAt: new Date().toISOString()
+      }),
+    })
+
+    if (!response.ok) {
+      console.error('Failed to update order with payment proof')
+    }
+  } catch (error) {
+    console.error('Error updating order:', error)
+  }
+}
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-ET', {

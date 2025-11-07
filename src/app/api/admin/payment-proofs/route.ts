@@ -35,34 +35,79 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const filter = searchParams.get('filter') || 'pending'
 
-    // Build query based on filter
-    let query: any = { paymentProof: { $exists: true, $ne: null } }
+    console.log('🔍 Fetching payment proofs with filter:', filter)
+
+    // IMPROVED QUERY: Better handling of payment proof existence
+    let query: any = {}
     
     switch (filter) {
       case 'pending':
-        query.status = 'pending'
-        query['paymentProof.verified'] = false
+        // Look for orders with payment proof that are not verified
+        query = {
+          $and: [
+            { 
+              $or: [
+                { 'paymentProof.imageUrl': { $exists: true, $ne: null } },
+                { 'paymentProof.imageUrl': { $ne: '' } }
+              ]
+            },
+            { 'paymentProof.verified': { $ne: true } },
+            { status: 'pending' }
+          ]
+        }
         break
       case 'verified':
-        query['paymentProof.verified'] = true
+        // Orders with verified payment proofs
+        query = {
+          'paymentProof.verified': true
+        }
         break
       case 'rejected':
-        query.status = 'cancelled'
+        // Orders that were cancelled/rejected
+        query = {
+          status: 'cancelled'
+        }
         break
       case 'all':
-        // No additional filters for 'all'
+        // All orders that have any payment proof data
+        query = {
+          $or: [
+            { 'paymentProof.imageUrl': { $exists: true, $ne: null } },
+            { 'paymentProof.imageUrl': { $ne: '' } },
+            { 'paymentProof.verified': { $exists: true } }
+          ]
+        }
         break
     }
 
+    console.log('📋 MongoDB Query:', JSON.stringify(query, null, 2))
+
     const paymentProofs = await Order.find(query)
       .sort({ createdAt: -1 })
-      .select('-items') // Exclude items to reduce payload size
+      .select('orderNumber customerInfo totalAmount paymentMethod bankDetails paymentProof status createdAt')
       .lean()
 
-    return NextResponse.json({ paymentProofs })
+    console.log(`✅ Found ${paymentProofs.length} payment proofs`)
+
+    // Log each proof for debugging
+    paymentProofs.forEach((proof, index) => {
+      console.log(`📸 Proof ${index + 1}:`, {
+        orderNumber: proof.orderNumber,
+        hasPaymentProof: !!proof.paymentProof,
+        imageUrl: proof.paymentProof?.imageUrl,
+        verified: proof.paymentProof?.verified,
+        status: proof.status
+      })
+    })
+
+    return NextResponse.json({ 
+      paymentProofs,
+      count: paymentProofs.length,
+      filter 
+    })
 
   } catch (error: any) {
-    console.error('Payment proofs fetch error:', error)
+    console.error('❌ Payment proofs fetch error:', error)
     if (error.name === 'JsonWebTokenError') {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }

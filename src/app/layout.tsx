@@ -1,3 +1,4 @@
+// src/app/layout.tsx
 import './globals.css'
 import type { Metadata } from 'next'
 import Navbar from '@/components/Navbar'
@@ -5,15 +6,13 @@ import MobileBottomNav from '@/components/MobileBottomNav'
 import { WishlistProvider } from './contexts/WishlistContext'
 import { CartProvider } from './contexts/CartContext'
 import Footer from '@/components/Footer'
-import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+import ToastProvider from '@/components/ToastProvider'
 
 export const metadata: Metadata = {
   title: 'Yafrican | Local Marketplace for Ethiopia',
   description: 'Discover and shop from local sellers in Ethiopia. Yafrican makes it easy to connect buyers and sellers.',
   keywords: 'ethiopia, marketplace, shopping, local sellers, online store',
   authors: [{ name: 'Yafrican Team' }],
-  viewport: 'width=device-width, initial-scale=1',
 }
 
 export default function RootLayout({
@@ -23,6 +22,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
       <body className="bg-white text-gray-900 antialiased w-full">
         <CartProvider>
           <WishlistProvider>
@@ -41,20 +43,8 @@ export default function RootLayout({
 
             {/* Footer - Visible on all devices */}
             <Footer />
+            <ToastProvider />
 
-            {/* React Toastify Container */}
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-            />
           </WishlistProvider>
         </CartProvider>
       </body>

@@ -40,12 +40,12 @@ const OrderSchema = new mongoose.Schema({
     default: 'pending'
   },
   paymentProof: {
-    imageUrl: String,
-    uploadedAt: Date,
-    verified: { type: Boolean, default: false },
-    verifiedBy: String,
-    verifiedAt: Date
-  },
+  imageUrl: { type: String },
+  uploadedAt: { type: Date },
+  verified: { type: Boolean, default: false },
+  verifiedBy: { type: String },
+  verifiedAt: { type: Date }
+},
   adminNotes: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

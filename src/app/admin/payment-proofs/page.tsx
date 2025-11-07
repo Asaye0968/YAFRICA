@@ -4,22 +4,23 @@
 import { useState, useEffect } from 'react'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { CreditCard, Eye, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 
 interface PaymentProof {
   _id: string
   orderNumber: string
   customerInfo: {
-    fullName: string
-    phone: string
-    email: string
-    address: string
+    fullName?: string
+    phone?: string
+    email?: string
+    address?: string
   }
   totalAmount: number
   paymentMethod: string
   bankDetails?: {
-    name: string
-    accountNumber: string
-    accountName: string
+    name?: string
+    accountNumber?: string
+    accountName?: string
   }
   paymentProof: {
     imageUrl: string
@@ -37,9 +38,15 @@ export default function PaymentProofsAdminPage() {
   const [loading, setLoading] = useState(true)
   const [selectedProof, setSelectedProof] = useState<PaymentProof | null>(null)
   const [showModal, setShowModal] = useState(false)
-  const [verifying, setVerifying] = useState(false)
-  const [rejecting, setRejecting] = useState(false)
+  const [verifyingId, setVerifyingId] = useState<string | null>(null) // Track which one is verifying
+  const [rejectingId, setRejectingId] = useState<string | null>(null) // Track which one is rejecting
   const [filter, setFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('pending')
+  const [imageErrors, setImageErrors] = useState<{[key: string]: boolean}>({})
+
+  const handleImageError = (proofId: string) => {
+    console.log(`Image failed to load for proof: ${proofId}`)
+    setImageErrors(prev => ({...prev, [proofId]: true}))
+  }
 
   useEffect(() => {
     fetchPaymentProofs()
@@ -54,21 +61,44 @@ export default function PaymentProofsAdminPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setPaymentProofs(data.paymentProofs)
+        console.log('📋 Fetched payment proofs:', data.paymentProofs)
+        setPaymentProofs(data.paymentProofs || [])
       } else {
+        console.error('❌ Failed to fetch payment proofs')
         toast.error('Failed to fetch payment proofs')
+        setPaymentProofs([])
       }
     } catch (error) {
+      console.error('❌ Error fetching payment proofs:', error)
       toast.error('Error fetching payment proofs')
+      setPaymentProofs([])
     } finally {
       setLoading(false)
     }
   }
-
-  const handleVerifyPayment = async (orderId: string) => {
+// In your admin component, add this debug effect
+useEffect(() => {
+  if (paymentProofs.length > 0) {
+    paymentProofs.forEach(proof => {
+      console.log('🔍 Payment Proof Image Debug:', {
+        orderNumber: proof.orderNumber,
+        imageUrl: proof.paymentProof?.imageUrl,
+        fullPath: proof.paymentProof?.imageUrl
+      })
+    })
+  }
+}, [paymentProofs])
+  // ✅ FIXED: Properly handle verification with individual loading states
+  const handleVerifyPayment = async (proof: PaymentProof) => {
     try {
-      setVerifying(true)
-      const response = await fetch(`/api/admin/orders/${orderId}/verify`, {
+      setVerifyingId(proof._id) // Set which specific one is being verified
+      
+      console.log('🔄 Verifying payment:', {
+        orderId: proof._id,
+        orderNumber: proof.orderNumber
+      })
+
+      const response = await fetch(`/api/admin/orders/${proof._id}/verify`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -81,23 +111,53 @@ export default function PaymentProofsAdminPage() {
       })
 
       if (response.ok) {
-        toast.success('Payment verified successfully!')
-        fetchPaymentProofs()
+        // ✅ FIXED: Update only the specific payment proof
+        setPaymentProofs(prevProofs => 
+          prevProofs.map(p => 
+            p._id === proof._id 
+              ? {
+                  ...p,
+                  status: 'confirmed',
+                  paymentProof: {
+                    ...p.paymentProof,
+                    verified: true,
+                    verifiedAt: new Date().toISOString(),
+                    verifiedBy: 'Admin'
+                  }
+                }
+              : p
+          )
+        )
+        
+        toast.success(`Payment for order ${proof.orderNumber} verified successfully!`)
         setShowModal(false)
+        
+        console.log('✅ Verified successfully:', proof.orderNumber)
       } else {
-        toast.error('Failed to verify payment')
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Failed to verify payment')
+        console.error('❌ Verification failed:', errorData)
       }
     } catch (error) {
+      console.error('❌ Error verifying payment:', error)
       toast.error('Error verifying payment')
     } finally {
-      setVerifying(false)
+      setVerifyingId(null) // Reset loading state
     }
   }
 
-  const handleRejectPayment = async (orderId: string, reason: string) => {
+  // ✅ FIXED: Properly handle rejection with individual loading states
+  const handleRejectPayment = async (proof: PaymentProof, reason: string) => {
     try {
-      setRejecting(true)
-      const response = await fetch(`/api/admin/orders/${orderId}/verify`, {
+      setRejectingId(proof._id) // Set which specific one is being rejected
+      
+      console.log('🔄 Rejecting payment:', {
+        orderId: proof._id,
+        orderNumber: proof.orderNumber,
+        reason
+      })
+
+      const response = await fetch(`/api/admin/orders/${proof._id}/verify`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -110,18 +170,50 @@ export default function PaymentProofsAdminPage() {
       })
 
       if (response.ok) {
-        toast.success('Payment rejected successfully!')
-        fetchPaymentProofs()
+        // ✅ FIXED: Update only the specific payment proof
+        setPaymentProofs(prevProofs => 
+          prevProofs.map(p => 
+            p._id === proof._id 
+              ? {
+                  ...p,
+                  status: 'cancelled',
+                  paymentProof: {
+                    ...p.paymentProof,
+                    verified: false
+                  }
+                }
+              : p
+          )
+        )
+        
+        toast.success(`Payment for order ${proof.orderNumber} rejected successfully!`)
         setShowModal(false)
+        
+        console.log('✅ Rejected successfully:', proof.orderNumber)
       } else {
-        toast.error('Failed to reject payment')
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Failed to reject payment')
+        console.error('❌ Rejection failed:', errorData)
       }
     } catch (error) {
+      console.error('❌ Error rejecting payment:', error)
       toast.error('Error rejecting payment')
     } finally {
-      setRejecting(false)
+      setRejectingId(null) // Reset loading state
     }
   }
+
+  // Debugging
+  useEffect(() => {
+    if (paymentProofs.length > 0) {
+      console.log('🔍 Current Payment Proofs State:', paymentProofs.map(p => ({
+        _id: p._id,
+        orderNumber: p.orderNumber,
+        status: p.status,
+        verified: p.paymentProof.verified
+      })))
+    }
+  }, [paymentProofs])
 
   const openProofModal = (proof: PaymentProof) => {
     setSelectedProof(proof)
@@ -132,30 +224,146 @@ export default function PaymentProofsAdminPage() {
     const baseClasses = "px-3 py-1 rounded-full text-sm font-medium"
     
     if (verified) {
-      return <span className={`${baseClasses} bg-green-100 text-green-800`}>Verified</span>
+      return <span className={`${baseClasses} bg-green-100 text-green-800 border border-green-200`}>
+        <CheckCircle className="w-3 h-3 inline mr-1" />
+        Verified
+      </span>
     }
     
     switch (status) {
       case 'pending':
-        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Pending Review</span>
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800 border border-yellow-200`}>
+          <AlertCircle className="w-3 h-3 inline mr-1" />
+          Pending Review
+        </span>
       case 'confirmed':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Confirmed</span>
+        return <span className={`${baseClasses} bg-green-100 text-green-800 border border-green-200`}>
+          <CheckCircle className="w-3 h-3 inline mr-1" />
+          Confirmed
+        </span>
       case 'cancelled':
-        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Rejected</span>
+        return <span className={`${baseClasses} bg-red-100 text-red-800 border border-red-200`}>
+          <XCircle className="w-3 h-3 inline mr-1" />
+          Rejected
+        </span>
       default:
-        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{status}</span>
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800 border border-gray-200`}>
+          {status}
+        </span>
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-ET', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString || dateString === 'Invalid Date') return 'Invalid Date'
+    
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return 'Invalid Date'
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (error) {
+      return 'Invalid Date'
+    }
   }
+
+ // Replace your getImageUrl function with this:
+const getImageUrl = (proof: PaymentProof) => {
+  if (imageErrors[proof._id]) {
+    console.log(`❌ Image error for ${proof._id}, using placeholder`);
+    return `/api/placeholder/400/200?text=Image+Not+Found`;
+  }
+  
+  const originalUrl = proof.paymentProof?.imageUrl;
+  console.log(`🖼️ Original URL for ${proof.orderNumber}:`, originalUrl);
+
+  if (!originalUrl) {
+    console.log(`❌ No URL for ${proof.orderNumber}`);
+    return `/api/placeholder/400/200?text=No+Image+Uploaded`;
+  }
+
+  // Handle different URL types
+  if (originalUrl.startsWith('http')) {
+    return originalUrl;
+  }
+
+  if (originalUrl.startsWith('data:')) {
+    return originalUrl;
+  }
+
+  // Extract filename from path - handle Windows paths
+  let filename = originalUrl;
+  
+  // Handle Windows paths (C:\\Users\\...)
+  if (originalUrl.includes('\\')) {
+    const parts = originalUrl.split('\\');
+    filename = parts[parts.length - 1];
+    console.log(`📁 Extracted filename from Windows path:`, filename);
+  }
+  
+  // Handle Unix paths
+  if (originalUrl.includes('/')) {
+    const parts = originalUrl.split('/');
+    filename = parts[parts.length - 1];
+    console.log(`📁 Extracted filename from Unix path:`, filename);
+  }
+
+  // Construct the public URL
+  const publicUrl = `/uploads/payment-proofs/${filename}`;
+  console.log(`🔗 Public URL for ${proof.orderNumber}:`, publicUrl);
+  
+  return publicUrl;
+};
+// Temporary debug component - add this to your admin page
+// Add this debug component to your admin page
+const ImageDebugger = () => {
+  if (paymentProofs.length === 0) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 bg-black text-white p-4 rounded-lg text-xs max-w-md z-50">
+      <h4 className="font-bold mb-2">🖼️ Image Debug Info:</h4>
+      {paymentProofs.slice(0, 3).map(proof => {
+        const imageUrl = getImageUrl(proof);
+        return (
+          <div key={proof._id} className="mb-2 border-b border-gray-600 pb-2">
+            <div><strong>Order:</strong> {proof.orderNumber}</div>
+            <div><strong>Stored URL:</strong> {proof.paymentProof?.imageUrl || 'No URL'}</div>
+            <div><strong>Final URL:</strong> {imageUrl}</div>
+            <div><strong>Status:</strong> {imageErrors[proof._id] ? '❌ Error' : '✅ Loading'}</div>
+            <div className="mt-1">
+              <button 
+                onClick={() => {
+                  console.log('🖼️ Image details:', {
+                    proof,
+                    imageUrl,
+                    fullPath: `C:\\Users\\hp\\Desktop\\nextjs pro\\yafrican\\public\\uploads\\payment-proofs\\${proof.orderNumber}*.png`
+                  });
+                  window.open(imageUrl, '_blank');
+                }}
+                className="bg-blue-500 px-2 py-1 rounded text-xs"
+              >
+                Test Image
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// Then add <ImageDebugger /> to your JSX (temporarily)
+
+  // Safe data accessors
+  const getCustomerName = (proof: PaymentProof) => proof.customerInfo?.fullName || 'Unknown Customer'
+  const getCustomerEmail = (proof: PaymentProof) => proof.customerInfo?.email || 'No email provided'
+  const getCustomerPhone = (proof: PaymentProof) => proof.customerInfo?.phone || 'No phone provided'
+  const getCustomerAddress = (proof: PaymentProof) => proof.customerInfo?.address || 'No address provided'
 
   if (loading) {
     return (
@@ -204,10 +412,26 @@ export default function PaymentProofsAdminPage() {
         <div className="mb-6">
           <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm border">
             {[
-              { key: 'pending', label: 'Pending Review', count: paymentProofs.filter(p => !p.paymentProof.verified && p.status === 'pending').length },
-              { key: 'verified', label: 'Verified', count: paymentProofs.filter(p => p.paymentProof.verified).length },
-              { key: 'rejected', label: 'Rejected', count: paymentProofs.filter(p => p.status === 'cancelled').length },
-              { key: 'all', label: 'All Proofs', count: paymentProofs.length }
+              { 
+                key: 'pending', 
+                label: 'Pending Review', 
+                count: paymentProofs.filter(p => !p.paymentProof.verified && p.status === 'pending').length 
+              },
+              { 
+                key: 'verified', 
+                label: 'Verified', 
+                count: paymentProofs.filter(p => p.paymentProof.verified).length 
+              },
+              { 
+                key: 'rejected', 
+                label: 'Rejected', 
+                count: paymentProofs.filter(p => p.status === 'cancelled').length 
+              },
+              { 
+                key: 'all', 
+                label: 'All Proofs', 
+                count: paymentProofs.length 
+              }
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -227,11 +451,7 @@ export default function PaymentProofsAdminPage() {
         {/* Payment Proofs Grid */}
         {paymentProofs.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <div className="text-gray-400 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
+            <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Payment Proofs Found</h3>
             <p className="text-gray-600">
               {filter === 'pending' 
@@ -250,7 +470,9 @@ export default function PaymentProofsAdminPage() {
                     <h3 className="font-semibold text-gray-900">{proof.orderNumber}</h3>
                     {getStatusBadge(proof.status, proof.paymentProof.verified)}
                   </div>
-                  <p className="text-2xl font-bold text-green-600">{proof.totalAmount.toFixed(2)} Br</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {proof.totalAmount ? `${proof.totalAmount.toFixed(2)} Br` : 'N/A'}
+                  </p>
                 </div>
 
                 {/* Customer Info */}
@@ -258,15 +480,21 @@ export default function PaymentProofsAdminPage() {
                   <div className="space-y-2">
                     <div>
                       <p className="text-sm text-gray-600">Customer</p>
-                      <p className="font-medium text-gray-900">{proof.customerInfo.fullName}</p>
+                      <p className="font-medium text-gray-900">
+                        {getCustomerName(proof)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="font-medium text-gray-900 truncate">
+                        {getCustomerEmail(proof)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Phone</p>
-                      <p className="font-medium text-gray-900">{proof.customerInfo.phone}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Payment Method</p>
-                      <p className="font-medium text-gray-900 capitalize">{proof.paymentMethod.replace('_', ' ')}</p>
+                      <p className="font-medium text-gray-900">
+                        {getCustomerPhone(proof)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -281,30 +509,44 @@ export default function PaymentProofsAdminPage() {
                   </div>
 
                   {/* Proof Image Preview */}
-                  <div className="mb-4">
-                    <img
-                      src={proof.paymentProof.imageUrl}
-                      alt="Payment proof"
-                      className="w-full h-32 object-cover rounded-lg border border-gray-300 cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => openProofModal(proof)}
-                    />
-                  </div>
+                {/* Proof Image Preview - REPLACE THIS SECTION */}
+<div className="mb-4">
+  <div className="relative aspect-video bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
+    <img
+      src={getImageUrl(proof)}
+      alt={`Payment proof for order ${proof.orderNumber}`}
+      className="w-full h-full object-contain bg-white"
+      onError={() => handleImageError(proof._id)}
+      onClick={() => openProofModal(proof)}
+    />
+    <div className="absolute inset-0 flex items-center justify-center bg-transparent hover:bg-black hover:bg-opacity-10 transition-all duration-200 cursor-pointer">
+      <Eye className="w-8 h-8 text-white opacity-0 hover:opacity-100 transition-opacity" />
+    </div>
+  </div>
+  {imageErrors[proof._id] && (
+    <p className="text-xs text-red-500 mt-1 text-center">
+      Image failed to load
+    </p>
+  )}
+</div>
 
                   {/* Action Buttons */}
                   <div className="flex space-x-2">
                     <button
                       onClick={() => openProofModal(proof)}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
                     >
+                      <Eye className="w-4 h-4" />
                       View Details
                     </button>
                     {!proof.paymentProof.verified && proof.status === 'pending' && (
                       <button
-                        onClick={() => handleVerifyPayment(proof._id)}
-                        disabled={verifying}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                        onClick={() => handleVerifyPayment(proof)}
+                        disabled={verifyingId === proof._id}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                       >
-                        Verify
+                        <CheckCircle className="w-4 h-4" />
+                        {verifyingId === proof._id ? 'Verifying...' : 'Verify'}
                       </button>
                     )}
                   </div>
@@ -323,15 +565,13 @@ export default function PaymentProofsAdminPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">Payment Proof Details</h2>
-                    <p className="text-gray-600">{selectedProof.orderNumber}</p>
+                    <p className="text-gray-600">Order #{selectedProof.orderNumber}</p>
                   </div>
                   <button
                     onClick={() => setShowModal(false)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    className="text-gray-400 hover:text-gray-600 transition-colors p-2"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <XCircle className="w-6 h-6" />
                   </button>
                 </div>
               </div>
@@ -342,15 +582,21 @@ export default function PaymentProofsAdminPage() {
                   {/* Left Column - Proof Image */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Proof</h3>
-                    <img
-                      src={selectedProof.paymentProof.imageUrl}
-                      alt="Payment proof"
-                      className="w-full rounded-lg border border-gray-300 shadow-sm"
-                    />
-                    <div className="mt-4 text-sm text-gray-600">
-                      <p>Uploaded: {formatDate(selectedProof.paymentProof.uploadedAt)}</p>
+                    <div className="bg-gray-100 rounded-lg border border-gray-300 overflow-hidden">
+                      <img
+                        src={getImageUrl(selectedProof)}
+                        alt="Payment proof"
+                        className="w-full h-auto max-h-96 object-contain"
+                        onError={() => handleImageError(selectedProof._id)}
+                      />
+                    </div>
+                    <div className="mt-4 text-sm text-gray-600 space-y-1">
+                      <p><strong>Uploaded:</strong> {formatDate(selectedProof.paymentProof.uploadedAt)}</p>
                       {selectedProof.paymentProof.verified && selectedProof.paymentProof.verifiedAt && (
-                        <p>Verified: {formatDate(selectedProof.paymentProof.verifiedAt)}</p>
+                        <p><strong>Verified:</strong> {formatDate(selectedProof.paymentProof.verifiedAt)}</p>
+                      )}
+                      {selectedProof.paymentProof.verifiedBy && (
+                        <p><strong>Verified by:</strong> {selectedProof.paymentProof.verifiedBy}</p>
                       )}
                     </div>
                   </div>
@@ -362,22 +608,22 @@ export default function PaymentProofsAdminPage() {
                     {/* Customer Details */}
                     <div className="mb-6">
                       <h4 className="font-medium text-gray-900 mb-3">Customer Details</h4>
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Full Name:</span>
-                          <span className="font-medium">{selectedProof.customerInfo.fullName}</span>
+                          <span className="font-medium text-right">{getCustomerName(selectedProof)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Phone:</span>
-                          <span className="font-medium">{selectedProof.customerInfo.phone}</span>
+                          <span className="font-medium">{getCustomerPhone(selectedProof)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Email:</span>
-                          <span className="font-medium">{selectedProof.customerInfo.email}</span>
+                          <span className="font-medium truncate max-w-[200px]">{getCustomerEmail(selectedProof)}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Address:</span>
-                          <p className="font-medium mt-1">{selectedProof.customerInfo.address}</p>
+                          <p className="font-medium mt-1 text-sm">{getCustomerAddress(selectedProof)}</p>
                         </div>
                       </div>
                     </div>
@@ -385,7 +631,7 @@ export default function PaymentProofsAdminPage() {
                     {/* Payment Details */}
                     <div className="mb-6">
                       <h4 className="font-medium text-gray-900 mb-3">Payment Details</h4>
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Total Amount:</span>
                           <span className="font-bold text-green-600">{selectedProof.totalAmount.toFixed(2)} Br</span>
@@ -398,12 +644,18 @@ export default function PaymentProofsAdminPage() {
                           <>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Bank:</span>
-                              <span className="font-medium">{selectedProof.bankDetails.name}</span>
+                              <span className="font-medium">{selectedProof.bankDetails.name || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Account:</span>
-                              <span className="font-medium">{selectedProof.bankDetails.accountNumber}</span>
+                              <span className="font-medium">{selectedProof.bankDetails.accountNumber || 'N/A'}</span>
                             </div>
+                            {selectedProof.bankDetails.accountName && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Account Name:</span>
+                                <span className="font-medium">{selectedProof.bankDetails.accountName}</span>
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -412,35 +664,37 @@ export default function PaymentProofsAdminPage() {
                     {/* Verification Status */}
                     <div className="mb-6">
                       <h4 className="font-medium text-gray-900 mb-3">Verification Status</h4>
-                      {getStatusBadge(selectedProof.status, selectedProof.paymentProof.verified)}
-                      {selectedProof.paymentProof.verifiedBy && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          Verified by: {selectedProof.paymentProof.verifiedBy}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {getStatusBadge(selectedProof.status, selectedProof.paymentProof.verified)}
+                        {selectedProof.paymentProof.verified && (
+                          <span className="text-sm text-green-600">✓ Payment Verified</span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Action Buttons */}
                     {!selectedProof.paymentProof.verified && selectedProof.status === 'pending' && (
                       <div className="flex space-x-3">
                         <button
-                          onClick={() => handleVerifyPayment(selectedProof._id)}
-                          disabled={verifying}
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-md font-medium transition-colors disabled:opacity-50"
+                          onClick={() => handleVerifyPayment(selectedProof)}
+                          disabled={verifyingId === selectedProof._id}
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-md font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                          {verifying ? 'Verifying...' : 'Verify Payment'}
+                          <CheckCircle className="w-5 h-5" />
+                          {verifyingId === selectedProof._id ? 'Verifying...' : 'Verify Payment'}
                         </button>
                         <button
                           onClick={() => {
                             const reason = prompt('Please provide a reason for rejection:')
                             if (reason) {
-                              handleRejectPayment(selectedProof._id, reason)
+                              handleRejectPayment(selectedProof, reason)
                             }
                           }}
-                          disabled={rejecting}
-                          className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-md font-medium transition-colors disabled:opacity-50"
+                          disabled={rejectingId === selectedProof._id}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-md font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                          {rejecting ? 'Rejecting...' : 'Reject'}
+                          <XCircle className="w-5 h-5" />
+                          {rejectingId === selectedProof._id ? 'Rejecting...' : 'Reject'}
                         </button>
                       </div>
                     )}

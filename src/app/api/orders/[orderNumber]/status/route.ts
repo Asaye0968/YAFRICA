@@ -3,19 +3,20 @@ import { NextResponse } from 'next/server'
 import connectMongo from '@/lib/mongodb'
 import Order from '@/models/Order'
 
+// Use the new Next.js 14 pattern with Promise
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ orderNumber: string }> }
 ) {
   try {
-    // ✅ AWAIT the params first
+    // Await the params first
     const { orderNumber } = await params
     
     await connectMongo()
     
     const order = await Order.findOne({ 
       orderNumber 
-    }).select('status paymentProof')
+    }).select('status paymentProof adminVerified adminVerifiedAt')
     
     if (!order) {
       return NextResponse.json(
@@ -27,6 +28,8 @@ export async function GET(
     return NextResponse.json({
       status: order.status,
       paymentProof: order.paymentProof,
+      adminVerified: order.paymentProof?.verified || false,
+      adminVerifiedAt: order.paymentProof?.verifiedAt,
       orderNumber: orderNumber
     })
     

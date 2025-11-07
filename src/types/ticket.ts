@@ -21,8 +21,17 @@ export interface BankDetails {
   branch?: string
 }
 
+export interface PaymentProof {
+  imageUrl: string
+  uploadedAt: string
+  verified?: boolean
+  verifiedBy?: string
+  verifiedAt?: string
+}
+
 export interface OrderTicket {
   id: string
+  _id?: string // MongoDB compatibility
   orderNumber: string
   customerInfo: CustomerInfo
   items: TicketItem[]
@@ -30,14 +39,11 @@ export interface OrderTicket {
   paymentMethod: string
   bankDetails?: BankDetails
   timestamp: string
-status: string
-  paymentProof?: {
-    imageUrl: string
-    uploadedAt: string
-    verified?: boolean
-    verifiedBy?: string
-    verifiedAt?: string
-  }
-  adminVerified?: boolean // Add this field
-  adminVerifiedAt?: string // Add this field
+  createdAt?: string // Add this for created date
+  updatedAt?: string // Add this for updated date
+  status: string
+  paymentProof?: PaymentProof
+  adminVerified?: boolean
+  adminVerifiedAt?: string
+  adminNotes?: string // Add this for admin notes
 }

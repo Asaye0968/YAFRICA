@@ -1,7 +1,10 @@
 // src/app/api/upload-payment/route.ts
 import { NextResponse } from 'next/server'
-import connectMongo from '@/lib/mongodb'
+import { writeFile, mkdir } from 'fs/promises'
+import { join } from 'path'
+import { existsSync } from 'fs'
 import Order from '@/models/Order'
+import connectMongo from '@/lib/mongodb'
 
 export async function POST(req: Request) {
   try {
@@ -10,37 +13,59 @@ export async function POST(req: Request) {
     const orderNumber = formData.get('orderNumber') as string
 
     if (!file || !orderNumber) {
-      return NextResponse.json({ error: 'Missing file or order number' }, { status: 400 })
+      return NextResponse.json({ error: 'File and order number are required' }, { status: 400 })
     }
 
-    // Convert file to base64
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const base64Image = buffer.toString('base64')
-    const imageUrl = `data:${file.type};base64,${base64Image}`
-
+    // Connect to database
     await connectMongo()
 
-    // Update order with payment proof
-    const updatedOrder = await Order.findOneAndUpdate(
-  { orderNumber },
-  { 
-    paymentProof: {
-      imageUrl,
-      uploadedAt: new Date(),
-      verified: false
-    },
-    status: 'pending', // Set to pending for admin verification
-    updatedAt: new Date()
-  },
-  { new: true }
-)
-    if (!updatedOrder) {
+    // Check if order exists
+    const existingOrder = await Order.findOne({ orderNumber })
+    if (!existingOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    // Notify admin about payment proof upload
-    await notifyAdminAboutPaymentProof(updatedOrder)
+    // Convert file to buffer
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'payment-proofs')
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true })
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now()
+    const fileExtension = file.name.split('.').pop() || 'png'
+    const filename = `${orderNumber}_${timestamp}.${fileExtension}`
+    const filepath = join(uploadsDir, filename)
+
+    // Save file
+    await writeFile(filepath, buffer)
+
+    // Create public URL for the image
+    const imageUrl = `/uploads/payment-proofs/${filename}`
+
+    // Update order with payment proof
+    const updatedOrder = await Order.findOneAndUpdate(
+      { orderNumber },
+      {
+        $set: {
+          'paymentProof.imageUrl': imageUrl,
+          'paymentProof.uploadedAt': new Date(),
+          'paymentProof.verified': false,
+          status: 'pending'
+        }
+      },
+      { new: true }
+    )
+
+    console.log('✅ Payment proof uploaded:', {
+      orderNumber,
+      imageUrl,
+      fileSize: buffer.length
+    })
 
     return NextResponse.json({ 
       success: true, 
@@ -48,32 +73,8 @@ export async function POST(req: Request) {
       message: 'Payment proof uploaded successfully' 
     })
 
-  } catch (error: any) {
-    console.error('Payment upload error:', error)
-    return NextResponse.json(
-      { error: 'Failed to upload payment proof' },
-      { status: 500 }
-    )
-  }
-}
-
-// Function to notify admin about payment proof
-async function notifyAdminAboutPaymentProof(order: any) {
-  try {
-    console.log('PAYMENT PROOF UPLOADED:')
-    console.log('Order Number:', order.orderNumber)
-    console.log('Customer:', order.customerInfo.fullName)
-    console.log('Total Amount:', order.totalAmount)
-    console.log('Payment Method:', order.paymentMethod)
-    console.log('Uploaded:', order.updatedAt)
-    console.log('Payment Proof Available for Review')
-    
-    // TODO: Implement other notification methods
-    // - Email to admin with payment proof image
-    // - WhatsApp message to admin
-    // - Push notification to admin dashboard
-
   } catch (error) {
-    console.error('Payment proof notification error:', error)
+    console.error('❌ Upload error:', error)
+    return NextResponse.json({ error: 'Failed to upload payment proof' }, { status: 500 })
   }
 }
