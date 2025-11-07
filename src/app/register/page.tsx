@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { FcGoogle } from 'react-icons/fc'
 import { FaFacebook, FaEye, FaEyeSlash, FaCheck, FaUser, FaStore } from 'react-icons/fa'
 import { toast } from 'react-toastify'
@@ -18,6 +19,8 @@ export default function RegisterPage() {
     address: '',   // Only for sellers
     paymentMethod: '' // Only for sellers
   })
+    const router = useRouter()
+
   const [role, setRole] = useState<'customer' | 'seller'>('customer')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -138,7 +141,10 @@ export default function RegisterPage() {
           paymentMethod: ''
         })
         setRole('customer')
+            router.push('/signin')
+
       }
+      
     } catch (error) {
       console.error('Registration error:', error)
       // Update loading toast to error
