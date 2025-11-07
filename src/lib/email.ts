@@ -6,7 +6,10 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD
-  }
+  },
+  connectionTimeout: 10000, // 10 seconds
+  socketTimeout: 15000, // 15 seconds
+  greetingTimeout: 5000, // 5 seconds
 })
 
 interface SendEmailParams {
@@ -24,10 +27,10 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
       html,
     })
     
-    console.log('✅ Email sent to:', to)
+    console.log('Email sent to:', to)
     return result
   } catch (error) {
-    console.error('❌ Email sending failed:', error)
+    console.error(' Email sending failed:', error)
     throw error
   }
 }
