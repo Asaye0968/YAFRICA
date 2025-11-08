@@ -600,7 +600,7 @@ import { useRouter } from 'next/navigation'
 import { useCart } from '../app/contexts/CartContext'
 import { DocumentDuplicateIcon, CheckIcon, UserIcon, TicketIcon } from '@heroicons/react/24/outline'
 import { TicketGenerator } from '../utils/ticketGenerator'
-import OrderTicketDisplay from './OrderTicketDisplay.tsx'
+import OrderTicketDisplay from './OrderTicketDisplay'
 import { OrderTicket, CustomerInfo } from '../types/ticket'
 
 interface BankDetails {
