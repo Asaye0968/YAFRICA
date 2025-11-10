@@ -10,21 +10,21 @@ export const metadata: Metadata = {
 const shippingOptions = [
   {
     name: 'Standard Shipping',
-    price: 'Free on orders over $50',
+    price: 'Free on orders over 1500 Birr',
     time: '3-5 business days',
     description: 'Our most economical shipping option for non-urgent deliveries.',
     icon: TruckIcon,
   },
   {
     name: 'Express Shipping',
-    price: '$9.99',
+    price: '2000Birr',
     time: '1-2 business days',
     description: 'Get your orders faster with our express delivery service.',
     icon: ClockIcon,
   },
   {
     name: 'Same Day Delivery',
-    price: '$14.99',
+    price: '3000Birr',
     time: 'Same day',
     description: 'Available for orders placed before 12 PM in select areas.',
     icon: MapPinIcon,
@@ -95,8 +95,8 @@ export default function ShippingInfo() {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Free Shipping</h3>
                 <p className="text-gray-600">
-                  Enjoy free standard shipping on all orders over $50. For orders below $50, 
-                  a flat rate of $4.99 applies for standard shipping.
+                  Enjoy free standard shipping on all orders over 1500 Birr. For orders below 1500 Birr, 
+                  a flat rate of 300Birr applies for standard shipping.
                 </p>
               </div>
               <div>

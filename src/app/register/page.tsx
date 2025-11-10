@@ -579,7 +579,7 @@
 // }
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
@@ -597,7 +597,6 @@ export default function RegisterPage() {
     storeName: '',
     address: '',
     paymentMethod: '',
-    otp: '' // New OTP field
   })
   const router = useRouter()
 
@@ -606,19 +605,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  
-  // OTP States
-  const [otpSent, setOtpSent] = useState(false)
-  const [otpLoading, setOtpLoading] = useState(false)
-  const [countdown, setCountdown] = useState(0)
-
-  // Countdown timer
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [countdown])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -627,7 +613,7 @@ export default function RegisterPage() {
     })
   }
 
-  // Send OTP via Email function
+  // Send OTP and redirect to verification page
   const sendOTP = async () => {
     if (!formData.email) {
       toast.error('Email is required to send OTP')
@@ -641,20 +627,34 @@ export default function RegisterPage() {
       return
     }
 
-    setOtpLoading(true)
+    setLoading(true)
     try {
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
+        body: JSON.stringify({ 
+          email: formData.email,
+          name: formData.name,
+          role: role 
+        })
       })
 
       const data = await res.json()
 
       if (res.ok) {
-        setOtpSent(true)
-        setCountdown(120) // 2 minutes countdown
-        toast.success('OTP sent to your email!')
+        toast.success('OTP sent to your email! Redirecting...')
+        
+        // Store form data in sessionStorage for the verification page
+        const registrationData = {
+          ...formData,
+          role
+        }
+        sessionStorage.setItem('registrationData', JSON.stringify(registrationData))
+        
+        // Redirect to OTP verification page
+        setTimeout(() => {
+          router.push(`/register/verify-otp?email=${encodeURIComponent(formData.email)}`)
+        }, 1500)
       } else {
         toast.error(data.error || 'Failed to send OTP')
       }
@@ -662,16 +662,7 @@ export default function RegisterPage() {
       console.error('OTP send error:', error)
       toast.error('Failed to send OTP. Please try again.')
     }
-    setOtpLoading(false)
-  }
-
-  // Resend OTP function
-  const resendOTP = async () => {
-    if (countdown > 0) {
-      toast.info(`Please wait ${countdown} seconds before resending`)
-      return
-    }
-    await sendOTP()
+    setLoading(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -703,10 +694,6 @@ export default function RegisterPage() {
       toast.error('Passwords do not match')
       return setError('Passwords do not match')
     }
-    if (!otpSent || !formData.otp) {
-      toast.error('Please verify your email with OTP')
-      return setError('OTP verification required')
-    }
 
     // Seller-specific validation
     if (role === 'seller') {
@@ -720,89 +707,8 @@ export default function RegisterPage() {
       }
     }
 
-    setLoading(true)
-    
-    // Show loading toast
-    const loadingToast = toast.loading('Creating your account...')
-
-    try {
-      // Prepare data for API - only send relevant fields based on role
-      const submitData = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
-        otp: formData.otp, // Include OTP for verification
-        role: role
-      }
-
-      // Add seller-specific fields only if role is seller
-      if (role === 'seller') {
-        Object.assign(submitData, {
-          storeName: formData.storeName,
-          address: formData.address,
-          paymentMethod: formData.paymentMethod
-        })
-      }
-
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData),
-      })
-      
-      const data = await res.json()
-      
-      if (!res.ok) {
-        // Update loading toast to error
-        toast.update(loadingToast, {
-          render: data.error || 'Registration failed',
-          type: 'error',
-          isLoading: false,
-          autoClose: 5000
-        })
-        setError(data.error || 'Registration failed')
-      } else {
-        // Update loading toast to success
-        toast.update(loadingToast, {
-          render: `🎉 Successfully registered as ${role}!`,
-          type: 'success',
-          isLoading: false,
-          autoClose: 5000
-        })
-        
-        // Show additional success message
-        toast.success(`Welcome to Yafrican! ${role === 'seller' ? 'Your seller account is ready.' : 'Start shopping now!'}`)
-        
-        // Reset form
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          password: '',
-          confirmPassword: '',
-          storeName: '',
-          address: '',
-          paymentMethod: '',
-          otp: ''
-        })
-        setOtpSent(false)
-        setRole('customer')
-        router.push('/signin')
-      }
-      
-    } catch (error) {
-      console.error('Registration error:', error)
-      // Update loading toast to error
-      toast.update(loadingToast, {
-        render: 'Something went wrong. Please try again.',
-        type: 'error',
-        isLoading: false,
-        autoClose: 5000
-      })
-      setError('Something went wrong. Please try again.')
-    }
-    setLoading(false)
+    // Instead of registering directly, send OTP and redirect
+    await sendOTP()
   }
 
   const containerVariants = {
@@ -1014,77 +920,22 @@ export default function RegisterPage() {
                 />
               </motion.div>
 
-              {/* Email with OTP */}
               <motion.div variants={itemVariants}>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Email Address
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                    placeholder="you@example.com"
-                    required
-                    disabled={otpSent} // Disable email input after OTP sent
-                  />
-                  <button
-                    type="button"
-                    onClick={otpSent ? resendOTP : sendOTP}
-                    disabled={!formData.email || otpLoading || (otpSent && countdown > 0)}
-                    className="px-4 py-3 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 text-white rounded-xl font-semibold transition-colors duration-300 min-w-24"
-                  >
-                    {otpLoading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
-                    ) : otpSent ? (
-                      countdown > 0 ? `${countdown}s` : 'Resend'
-                    ) : (
-                      'Send OTP'
-                    )}
-                  </button>
-                </div>
-                {otpSent && (
-                  <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
-                    <FaCheck className="w-3 h-3" />
-                    OTP sent! Check your email
-                  </p>
-                )}
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                  placeholder="you@example.com"
+                  required
+                />
               </motion.div>
-
-              {/* OTP Input Field */}
-              {otpSent && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  variants={itemVariants}
-                >
-                  <label htmlFor="otp" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Enter OTP Code
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      id="otp"
-                      name="otp"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={6}
-                      value={formData.otp}
-                      onChange={handleChange}
-                      className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-center text-lg font-mono tracking-widest"
-                      placeholder="123456"
-                      required
-                    />
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Enter the 6-digit code sent to your email
-                  </p>
-                </motion.div>
-              )}
 
               <motion.div variants={itemVariants}>
                 <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -1220,7 +1071,7 @@ export default function RegisterPage() {
               <motion.button
                 variants={itemVariants}
                 type="submit"
-                disabled={loading || !otpSent}
+                disabled={loading}
                 whileHover={{ scale: loading ? 1 : 1.02 }}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
                 className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-gray-900 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1228,10 +1079,10 @@ export default function RegisterPage() {
                 {loading ? (
                   <div className="flex items-center justify-center space-x-2">
                     <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
-                    <span>Creating Account...</span>
+                    <span>Sending OTP...</span>
                   </div>
                 ) : (
-                  `Create ${role === 'seller' ? 'Seller' : 'Customer'} Account`
+                  `Continue to Verify Email`
                 )}
               </motion.button>
             </form>
